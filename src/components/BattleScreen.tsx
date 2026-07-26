@@ -31,6 +31,9 @@ function makeDecor(): { x: number; y: number; k: number; s: number }[] {
 }
 const DECOR = makeDecor()
 
+// Diziliş fazında oyuncunun birliklerini yerleştirebileceği bölgenin sağ sınırı
+const DEPLOY_X = Math.round(FIELD_W * 0.34)
+
 export default function BattleScreen({ initialUnits, provinceName, enemyName, banner, onFinish }: Props) {
   const bd = banner ?? DEFAULT_BANNER
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -43,8 +46,12 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
   const [speed, setSpeed] = useState(1)
   const speedRef = useRef(1)
   const [winner, setWinner] = useState<'player' | 'enemy' | null>(null)
+  // Savaş öncesi diziliş fazı: birlikler yerleştirilir, sonra muharebe başlar
+  const [phase, setPhase] = useState<'deploy' | 'fight'>('deploy')
+  const phaseRef = useRef<'deploy' | 'fight'>('deploy')
 
   useEffect(() => { speedRef.current = speed }, [speed])
+  useEffect(() => { phaseRef.current = phase }, [phase])
 
   // Görselleri yükle
   useEffect(() => {
@@ -65,7 +72,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000) * speedRef.current
       last = now
-      if (!winner && dt > 0) {
+      if (phaseRef.current === 'fight' && !winner && dt > 0) {
         tickBattle(unitsRef.current, dt, (u, tgt) => {
           // görsel efekt üret
           const fx = fxRef.current
@@ -141,13 +148,36 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
       ctx.restore()
     }
 
+    // === DİZİLİŞ FAZI: yerleşim bölgesi çerçevesi ===
+    if (phaseRef.current === 'deploy') {
+      const zx = 12 * sx, zy = 14 * sy, zw = (DEPLOY_X - 12) * sx, zh = (FIELD_H - 28) * sy
+      ctx.fillStyle = 'rgba(20,184,166,0.10)'
+      ctx.fillRect(zx, zy, zw, zh)
+      ctx.setLineDash([10, 7])
+      ctx.strokeStyle = 'rgba(251,191,36,0.85)'
+      ctx.lineWidth = 2
+      ctx.strokeRect(zx, zy, zw, zh)
+      ctx.setLineDash([])
+      ctx.font = `bold ${Math.max(12, 13 * sx)}px sans-serif`
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3
+      const labelX = zx + zw / 2
+      ctx.strokeText('⚑ DİZİLİŞ ALANI', labelX, zy + 16 * sy)
+      ctx.fillText('⚑ DİZİLİŞ ALANI', labelX, zy + 16 * sy)
+    }
+
     for (const u of unitsRef.current) {
       if (u.dead) continue
       const x = u.x * sx, y = u.y * sy
       const st = STATS[u.type]
       const isPlayer = u.side === 'player'
       const sideColor = isPlayer ? bd.field : '#dc2626'
+      // Diziliş fazında düşman birlikleri yarı şeffaf (istihbarat görünümü)
+      const deployFaded = phaseRef.current === 'deploy' && !isPlayer
 
+      ctx.save()
+      if (deployFaded) ctx.globalAlpha = 0.55
       // menzil göstergesi (seçili okçu/topçu)
       if (u.id === selected && st.range > 30) {
         ctx.beginPath(); ctx.arc(x, y, st.range * sx, 0, Math.PI * 2)
@@ -225,6 +255,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(u.tx * sx, u.ty * sy); ctx.stroke()
         ctx.setLineDash([])
       }
+      ctx.restore()
     }
 
     // === EFEKTLER: ok, gülle, patlama, kılıç şavkı ===
@@ -298,6 +329,20 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
     if (winner) return
     const p = toField(e)
     const units = unitsRef.current
+    // === DİZİLİŞ FAZI: kendi birliğini seç, bölge içinde yeniden konumlandır ===
+    if (phase === 'deploy') {
+      const hit = units.filter(u => !u.dead && u.side === 'player').find(u => Math.hypot(u.x - p.x, u.y - p.y) < 32)
+      if (hit) { setSelected(hit.id); return }
+      if (selected != null) {
+        const u = units.find(u => u.id === selected)
+        if (u && p.x <= DEPLOY_X + 24) {
+          u.x = Math.max(16, Math.min(DEPLOY_X, p.x))
+          u.y = Math.max(22, Math.min(FIELD_H - 22, p.y))
+          u.tx = u.x; u.ty = u.y
+        }
+      }
+      return
+    }
     const hit = units.filter(u => !u.dead).find(u => Math.hypot(u.x - p.x, u.y - p.y) < 32)
     if (hit && hit.side === 'player' && !hit.routing) { setSelected(hit.id); return }
     if (selected != null) {
@@ -321,17 +366,26 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
     <div className="h-full relative bg-slate-950 text-white flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-slate-700 flex-shrink-0">
         <div>
-          <div className="font-bold text-sm">⚔️ {provinceName} Muharebesi</div>
-          <div className="text-[11px] text-slate-400">Düşman: {enemyName}</div>
+          <div className="font-bold text-sm">{phase === 'deploy' ? '🛡️ Ordu Dizilişi' : `⚔️ ${provinceName} Muharebesi`}</div>
+          <div className="text-[11px] text-slate-400">
+            {phase === 'deploy' ? 'Birliğe dokun, sonra diziliş alanında yeni konumuna dokun' : `Düşman: ${enemyName}`}
+          </div>
         </div>
-        <div className="flex gap-1">
-          {[0, 1, 2, 3].map(s => (
-            <button key={s} onClick={() => setSpeed(s)}
-              className={`px-2.5 py-1 rounded text-xs font-bold ${speed === s ? 'bg-teal-600' : 'bg-slate-700'}`}>
-              {s === 0 ? '⏸' : `${s}x`}
-            </button>
-          ))}
-        </div>
+        {phase === 'deploy' ? (
+          <button onClick={() => { setPhase('fight'); setSelected(null) }}
+            className="px-4 py-2 rounded-xl bg-red-700 hover:bg-red-600 font-black text-sm active:scale-95 transition shadow-lg shadow-red-900/50">
+            ⚔️ SAVAŞI BAŞLAT
+          </button>
+        ) : (
+          <div className="flex gap-1">
+            {[0, 1, 2, 3].map(s => (
+              <button key={s} onClick={() => setSpeed(s)}
+                className={`px-2.5 py-1 rounded text-xs font-bold ${speed === s ? 'bg-teal-600' : 'bg-slate-700'}`}>
+                {s === 0 ? '⏸' : `${s}x`}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col landscape:flex-row min-h-0">
@@ -341,23 +395,25 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, ba
             className="absolute inset-0 w-full h-full touch-none select-none cursor-crosshair object-fill" />
         </div>
 
-        {/* Sağ birlik paneli */}
-        <div className="flex-1 landscape:flex-none landscape:w-[170px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l border-slate-700 flex flex-col min-h-0">
-          <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-300 border-b border-slate-700">Birliklerin</div>
-          <div className="flex-1 overflow-y-auto p-1.5 flex landscape:flex-col gap-1.5 min-h-0 overflow-x-auto landscape:overflow-x-hidden">
+        {/* Sağ birlik paneli: dar, yukarıdan aşağı sığan dizilim */}
+        <div className="flex-1 landscape:flex-none landscape:w-[150px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l border-slate-700 flex flex-col min-h-0">
+          <div className="px-2 py-1 text-[11px] font-semibold text-slate-300 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
+            <span>Birliklerin</span><span className="text-slate-500">{myUnits.length}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 grid grid-cols-3 landscape:grid-cols-1 gap-1 content-start min-h-0">
             {myUnits.map(u => (
               <button key={u.id} onClick={() => setSelected(u.id === selected ? null : u.id)}
-                className={`h-16 landscape:h-auto landscape:w-full flex-shrink-0 flex items-center gap-2 p-1.5 rounded-lg text-left border transition ${u.id === selected ? 'border-amber-400 bg-slate-800' : 'border-slate-700 bg-slate-800/50'} ${u.routing ? 'opacity-40' : ''}`}>
-                <img src={UNIT_IMG[u.type]} className="w-9 h-9 rounded-full object-cover border-2 border-teal-600 flex-shrink-0" alt="" />
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold truncate">{STATS[u.type].label}</div>
-                  <div className="text-[10px] text-slate-400">{u.routing ? 'KAÇIYOR!' : `❤${Math.max(0, Math.round(u.hp))} · 💙${Math.round(u.morale)}`}</div>
+                className={`flex flex-col landscape:flex-row items-center landscape:items-center gap-0.5 landscape:gap-1.5 p-1 rounded-md text-center landscape:text-left border transition ${u.id === selected ? 'border-amber-400 bg-slate-800' : 'border-slate-700 bg-slate-800/50'} ${u.routing ? 'opacity-40' : ''}`}>
+                <img src={UNIT_IMG[u.type]} className="w-7 h-7 rounded-full object-cover border-2 border-teal-600 flex-shrink-0" alt="" />
+                <div className="min-w-0 w-full">
+                  <div className="text-[10px] font-bold truncate">{STATS[u.type].label}</div>
+                  <div className="text-[9px] text-slate-400 truncate">{u.routing ? 'KAÇIYOR!' : `❤${Math.max(0, Math.round(u.hp))} 💙${Math.round(u.morale)}`}</div>
                 </div>
               </button>
             ))}
           </div>
-          <div className="p-1.5 text-[10px] text-slate-400 border-t border-slate-700">
-            {sel ? 'Haritaya dokun: hareket · düşmana dokun: saldırı' : 'Komuta için birlik seç'}
+          <div className="px-1.5 py-1 text-[9px] text-slate-400 border-t border-slate-700 flex-shrink-0">
+            {phase === 'deploy' ? 'Diz: birliğe dokun → konuma dokun' : sel ? 'Harita: hareket · düşman: saldırı' : 'Komuta için birlik seç'}
           </div>
         </div>
       </div>
