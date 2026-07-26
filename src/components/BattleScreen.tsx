@@ -12,9 +12,27 @@ interface Props {
   onFinish: (units: BattleUnit[], winner: 'player' | 'enemy') => void
 }
 
+// Görsel efektler (mermi, patlama, kılıç şavkı)
+interface Fx { kind: 'arrow' | 'cannon' | 'melee' | 'boom' | 'smoke'; x1: number; y1: number; x2: number; y2: number; t: number; ttl: number }
+
+// Savaş alanı dekorları (deterministik ağaç/kaya/çalı)
+function makeDecor(): { x: number; y: number; k: number; s: number }[] {
+  const arr: { x: number; y: number; k: number; s: number }[] = []
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 137 + 53) % FIELD_W
+    const y = 25 + ((i * 89 + 31) % (FIELD_H - 60))
+    // merkez savaş koridorunu boş bırak
+    if (x > FIELD_W * 0.25 && x < FIELD_W * 0.75 && y > FIELD_H * 0.2 && y < FIELD_H * 0.8) continue
+    arr.push({ x, y, k: i % 3, s: 0.7 + ((i * 7) % 10) / 14 })
+  }
+  return arr
+}
+const DECOR = makeDecor()
+
 export default function BattleScreen({ initialUnits, provinceName, enemyName, onFinish }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const unitsRef = useRef<BattleUnit[]>(initialUnits)
+  const fxRef = useRef<Fx[]>([])
   const lastCannon = useRef(0)
   const lastClash = useRef(0)
   const imgsRef = useRef<Record<string, HTMLImageElement | null>>({ bg: null, piyade: null, okcu: null, suvari: null })
@@ -45,12 +63,23 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       const dt = Math.min(0.1, (now - last) / 1000) * speedRef.current
       last = now
       if (!winner && dt > 0) {
-        tickBattle(unitsRef.current, dt, (u) => {
+        tickBattle(unitsRef.current, dt, (u, tgt) => {
+          // görsel efekt üret
+          const fx = fxRef.current
+          if (u.type === 'okcu') fx.push({ kind: 'arrow', x1: u.x, y1: u.y - 10, x2: tgt.x, y2: tgt.y, t: 0, ttl: 0.35 })
+          else if (u.type === 'topcu') {
+            fx.push({ kind: 'cannon', x1: u.x, y1: u.y - 8, x2: tgt.x, y2: tgt.y, t: 0, ttl: 0.7 })
+            fx.push({ kind: 'smoke', x1: u.x, y1: u.y - 8, x2: u.x, y2: u.y - 8, t: 0, ttl: 0.9 })
+            fx.push({ kind: 'boom', x1: tgt.x, y1: tgt.y, x2: tgt.x, y2: tgt.y, t: 0, ttl: 0.5 })
+          } else fx.push({ kind: 'melee', x1: (u.x + tgt.x) / 2, y1: (u.y + tgt.y) / 2 - 6, x2: tgt.x, y2: tgt.y, t: 0, ttl: 0.2 })
+          if (fx.length > 120) fx.splice(0, fx.length - 120)
           // saldırı sesi (kısıtlı sıklık)
           const now = performance.now()
           if (u.type === 'topcu') { if (now - lastCannon.current > 700) { lastCannon.current = now; sfx('/ses/top.mp3', 0.35) } }
           else if (now - lastClash.current > 500 && Math.random() < 0.5) { lastClash.current = now; sfx('/ses/kilic.mp3', 0.2) }
         })
+        fxRef.current.forEach(f => { f.t += dt })
+        fxRef.current = fxRef.current.filter(f => f.t < f.ttl)
         const r = battleResult(unitsRef.current)
         if (r) setWinner(r)
       }
@@ -77,6 +106,36 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       const g = ctx.createLinearGradient(0, 0, 0, H)
       g.addColorStop(0, '#4a7c3a'); g.addColorStop(1, '#33592a')
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
+    }
+
+    // === DEKOR: ağaç, kaya, çalı ===
+    for (const d of DECOR) {
+      const dx = d.x * sx, dy = d.y * sy, ds = d.s * sx
+      ctx.save()
+      ctx.globalAlpha = 0.85
+      if (d.k === 0) { // çam ağacı
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'
+        ctx.beginPath(); ctx.ellipse(dx, dy + 9 * ds, 7 * ds, 2.5 * ds, 0, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = '#4a3a26'; ctx.fillRect(dx - 1.2 * ds, dy, 2.4 * ds, 8 * ds)
+        ctx.fillStyle = '#1e3d1f'
+        for (let t = 0; t < 3; t++) {
+          const tw = (10 - t * 2.6) * ds, ty = dy - t * 6.5 * ds
+          ctx.beginPath(); ctx.moveTo(dx, ty - 10 * ds); ctx.lineTo(dx - tw / 2, ty + 2 * ds); ctx.lineTo(dx + tw / 2, ty + 2 * ds); ctx.closePath(); ctx.fill()
+        }
+        ctx.fillStyle = 'rgba(120,180,110,0.25)'
+        ctx.beginPath(); ctx.moveTo(dx, dy - 16 * ds); ctx.lineTo(dx - 3 * ds, dy - 8 * ds); ctx.lineTo(dx + 1 * ds, dy - 8 * ds); ctx.closePath(); ctx.fill()
+      } else if (d.k === 1) { // kaya
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'
+        ctx.beginPath(); ctx.ellipse(dx, dy + 3 * ds, 8 * ds, 2 * ds, 0, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = '#6b6f6a'
+        ctx.beginPath(); ctx.moveTo(dx - 7 * ds, dy + 2 * ds); ctx.lineTo(dx - 3 * ds, dy - 5 * ds); ctx.lineTo(dx + 3 * ds, dy - 6 * ds); ctx.lineTo(dx + 7 * ds, dy + 2 * ds); ctx.closePath(); ctx.fill()
+        ctx.fillStyle = '#8a8f88'
+        ctx.beginPath(); ctx.moveTo(dx - 3 * ds, dy - 5 * ds); ctx.lineTo(dx + 3 * ds, dy - 6 * ds); ctx.lineTo(dx + 5 * ds, dy - 1 * ds); ctx.lineTo(dx - 1 * ds, dy); ctx.closePath(); ctx.fill()
+      } else { // çalı
+        ctx.fillStyle = '#2d4a24'
+        ctx.beginPath(); ctx.arc(dx - 3 * ds, dy, 4 * ds, 0, Math.PI * 2); ctx.arc(dx + 3 * ds, dy - 1 * ds, 4.5 * ds, 0, Math.PI * 2); ctx.arc(dx, dy + 2 * ds, 3.5 * ds, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.restore()
     }
 
     for (const u of unitsRef.current) {
@@ -158,6 +217,52 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
         ctx.setLineDash([])
       }
     }
+
+    // === EFEKTLER: ok, gülle, patlama, kılıç şavkı ===
+    for (const f of fxRef.current) {
+      const p = f.t / f.ttl
+      const x1 = f.x1 * sx, y1 = f.y1 * sy, x2 = f.x2 * sx, y2 = f.y2 * sy
+      ctx.save()
+      if (f.kind === 'arrow') {
+        const px = x1 + (x2 - x1) * p, py = y1 + (y2 - y1) * p - Math.sin(p * Math.PI) * 26 * sy
+        const ang = Math.atan2(y2 - y1, x2 - x1)
+        ctx.strokeStyle = 'rgba(240,230,200,0.95)'; ctx.lineWidth = 1.6
+        ctx.beginPath(); ctx.moveTo(px - Math.cos(ang) * 8, py - Math.sin(ang) * 8); ctx.lineTo(px, py); ctx.stroke()
+      } else if (f.kind === 'cannon') {
+        const px = x1 + (x2 - x1) * p, py = y1 + (y2 - y1) * p - Math.sin(p * Math.PI) * 60 * sy
+        ctx.fillStyle = '#1c1917'
+        ctx.beginPath(); ctx.arc(px, py, 3.2, 0, Math.PI * 2); ctx.fill()
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.stroke()
+      } else if (f.kind === 'boom') {
+        const r = 6 + p * 26
+        ctx.globalAlpha = 1 - p
+        const g = ctx.createRadialGradient(x1, y1, 0, x1, y1, r)
+        g.addColorStop(0, '#fde68a'); g.addColorStop(0.5, '#f97316'); g.addColorStop(1, 'rgba(120,53,15,0)')
+        ctx.fillStyle = g
+        ctx.beginPath(); ctx.arc(x1, y1, r, 0, Math.PI * 2); ctx.fill()
+      } else if (f.kind === 'smoke') {
+        ctx.globalAlpha = 0.4 * (1 - p)
+        ctx.fillStyle = '#d6d3d1'
+        ctx.beginPath(); ctx.arc(x1 - p * 10, y1 - p * 16, 5 + p * 12, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(x1 + p * 6, y1 - p * 22, 4 + p * 9, 0, Math.PI * 2); ctx.fill()
+      } else { // melee şavkı
+        ctx.globalAlpha = 1 - p
+        ctx.strokeStyle = '#fef9c3'; ctx.lineWidth = 2.2
+        ctx.beginPath(); ctx.arc(x1, y1, 5 + p * 8, -0.6, 2.2); ctx.stroke()
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(x1 - 6, y1 + 4); ctx.lineTo(x1 + 6, y1 - 5); ctx.stroke()
+      }
+      ctx.restore()
+    }
+
+    // === Vinyet + ışık ===
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85)
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.42)')
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
+    const sun = ctx.createLinearGradient(0, 0, 0, H)
+    sun.addColorStop(0, 'rgba(255,240,200,0.10)'); sun.addColorStop(0.35, 'rgba(0,0,0,0)')
+    ctx.fillStyle = sun; ctx.fillRect(0, 0, W, H)
   }
 
   // Birlik merkezine göre deterministik formasyon dizilimi
