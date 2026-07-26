@@ -14,9 +14,9 @@ export interface Province {
   x: number
   y: number
   owner: string
-  occupiedBy?: string
-  core: boolean
-  unrest: number
+  occupiedBy?: string // işgal eden devlet (owner'dan farklıysa gelir yok)
+  core: boolean // çekirdek eyalet mi
+  unrest: number // 0-100 isyan riski
   terrain: Terrain
   building?: Building
   manpower: number
@@ -41,7 +41,7 @@ export interface Faction {
   relation: number
   state: RelationState
   tradeAgreement: boolean
-  alliance?: boolean
+  alliance?: boolean // askeri ittifak (savaş ilan etmez, savunmada destek yollar)
 }
 
 export type TaxLevel = 'dusuk' | 'orta' | 'yuksek'
@@ -55,12 +55,12 @@ export interface GameState {
   edict: Edict
   approval: number
   stability: number
-  mana: Record<ManaType, number>
-  techs: Record<ManaType, number>
-  laws: Record<Law, boolean>
-  groups: Record<GroupId, number>
-  warScore: Record<string, number>
-  armyXP: number
+  mana: Record<ManaType, number> // EU4 monarch power
+  techs: Record<ManaType, number> // 0-3 seviye
+  laws: Record<Law, boolean> // Vic3 kanunlar
+  groups: Record<GroupId, number> // 0-100 memnuniyet
+  warScore: Record<string, number> // düşman id -> skor (+ biz kazanıyoruz)
+  armyXP: number // ordu tecrübesi (seviye = hasar bonusu)
   coalitionFormed: boolean
   pendingEvent?: ChoiceEvent
   log: string[]
@@ -72,6 +72,7 @@ export interface ChoiceEvent {
   id: string
   title: string
   text: string
+  img?: string
   options: { label: string; desc: string }[]
 }
 
