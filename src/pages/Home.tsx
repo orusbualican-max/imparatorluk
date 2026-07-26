@@ -5,8 +5,9 @@ import { createBattle, survivors } from '../game/battle'
 import type { BattleUnit } from '../game/battle'
 import { applyEventChoice, armyLevel, armySize, coreCost, endTurn, newGame } from '../game/strategy'
 import { playMusic, sfx, stopMusic } from '../game/audio'
-import { UNIT_INFO, BUILDING_INFO, LAW_INFO, TECH_INFO } from '../game/types'
-import type { Building, Edict, GameState, Law, ManaType, TaxLevel, UnitType } from '../game/types'
+import { UNIT_INFO, BUILDING_INFO, LAW_INFO, TECH_INFO, DEFAULT_BANNER } from '../game/types'
+import type { BannerDesign, Building, Edict, GameState, Law, ManaType, TaxLevel, UnitType } from '../game/types'
+import { BannerSVG, OrnateFrame } from '../components/Banner'
 
 type Screen = 'menu' | 'map' | 'battle' | 'gameover'
 
@@ -118,6 +119,12 @@ export default function Home() {
   })
 
   const chooseEvent = (i: number) => update(s => applyEventChoice(s, i))
+
+  // Sancak değişince hizip rengini de senkronla (harita/diplomasi renkleri)
+  const bannerChange = (d: BannerDesign) => update(s => {
+    s.playerBanner = d
+    s.factions.player.color = d.field
+  })
 
   const setTax = (t: TaxLevel) => update(s => { s.tax = t })
   const edict = (e: Edict) => update(s => {
@@ -318,14 +325,16 @@ export default function Home() {
   if (screen === 'menu') return <Menu onStart={start} onContinue={continueGame} />
   if (screen === 'battle' && battle && gs) {
     return <BattleScreen initialUnits={battle.units} provinceName={gs.provinces[battle.provinceId].name}
-      enemyName={gs.factions[battle.enemyFactionId]?.name ?? 'İsyancılar'} onFinish={finishBattle} />
+      enemyName={gs.factions[battle.enemyFactionId]?.name ?? 'İsyancılar'} banner={gs.playerBanner ?? DEFAULT_BANNER} onFinish={finishBattle} />
   }
   if (screen === 'gameover' && gs) {
     try { localStorage.removeItem(SAVE_KEY) } catch { /* */ }
     return (
       <div className="min-h-full bg-slate-950 text-white flex items-center justify-center p-4 relative">
         <img src="/img/menu_bg2.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-        <div className="text-center max-w-sm relative">
+        <div className="relative max-w-sm w-full bg-slate-900/80 border border-amber-800/50 rounded-2xl p-6 pt-8 text-center backdrop-blur-sm">
+          <OrnateFrame />
+          <BannerSVG d={gs.playerBanner ?? DEFAULT_BANNER} className="w-24 h-16 mx-auto mb-3 drop-shadow-xl" />
           <div className="text-6xl mb-4">{gs.gameOver === 'win' ? '👑' : '🏳️'}</div>
           <h1 className="text-3xl font-bold mb-2">{gs.gameOver === 'win' ? 'İMPARATORLUĞUNUZ EZELİ!' : 'Taht El Değiştirdi'}</h1>
           <p className="text-slate-400 mb-6">{gs.gameOver === 'win'
@@ -341,13 +350,14 @@ export default function Home() {
     <div className="h-full relative">
       <MapScreen gs={gs} onEndTurn={handleEndTurn} onRecruit={recruit} onMoveArmy={moveArmy}
         onSetTax={setTax} onEdict={edict} onDiplomacy={diplomacy}
-        onBuild={build} onCore={core} onToggleLaw={toggleLaw} onResearch={research} />
+        onBuild={build} onCore={core} onToggleLaw={toggleLaw} onResearch={research} onBannerChange={bannerChange} />
       {gs.pendingEvent && (
         <div className="absolute inset-0 bg-black/75 flex items-center justify-center p-4 z-30">
-          <div className="bg-slate-900 border-2 border-amber-700/80 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl shadow-black">
+          <div className="relative bg-slate-900 border-2 border-amber-700/80 rounded-2xl max-w-md w-full overflow-visible shadow-2xl shadow-black">
+            <OrnateFrame />
             {/* EU4 tarzı olay tablosu */}
             {gs.pendingEvent.img && (
-              <div className="relative border-b-2 border-amber-700/80">
+              <div className="relative border-b-2 border-amber-700/80 rounded-t-2xl overflow-hidden">
                 <img src={gs.pendingEvent.img} alt="" className="w-full h-44 sm:h-52 object-cover" />
                 <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
                 <div className="absolute bottom-2.5 left-4 right-4 text-lg font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">{gs.pendingEvent.title}</div>
@@ -380,15 +390,16 @@ export default function Home() {
 
 function Menu({ onStart, onContinue }: { onStart: () => void; onContinue: () => void }) {
   const hasSave = (() => { try { return !!localStorage.getItem('imparatorluk_save') } catch { return false } })()
-  const banners = ['/img/banner_player.png', '/img/banner_kuzey.png', '/img/banner_han.png', '/img/banner_bati.png']
   return (
     <div className="min-h-full bg-slate-950 text-white relative overflow-y-auto">
       <img src="/img/menu_bg2.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
       <div className="fixed inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/25" />
       <div className="relative min-h-full flex flex-col items-center justify-center p-4 py-10">
-        <div className="text-center max-w-lg w-full">
-          <div className="flex justify-center gap-4 mb-4">
-            {banners.map((b, i) => (
+        <div className="relative text-center max-w-lg w-full bg-slate-950/40 rounded-3xl border border-amber-800/30 p-6 backdrop-blur-[2px]">
+          <OrnateFrame />
+          <div className="flex justify-center items-center gap-4 mb-4">
+            <BannerSVG d={DEFAULT_BANNER} className="w-14 h-10 drop-shadow-2xl hover:scale-110 transition-transform" />
+            {['/img/banner_kuzey.png', '/img/banner_han.png', '/img/banner_bati.png'].map((b, i) => (
               <img key={i} src={b} alt="" className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-2xl hover:scale-110 transition-transform" />
             ))}
           </div>
@@ -419,7 +430,7 @@ function Menu({ onStart, onContinue }: { onStart: () => void; onContinue: () => 
             className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50">
             ⚔️ {hasSave ? 'Yeni Sefer' : 'Tahta Otur'}
           </button>
-          <div className="text-[10px] text-slate-500 mt-4">v6.0 · Kayıt otomatik tutulur</div>
+          <div className="text-[10px] text-slate-500 mt-4">v7.0 · Kayıt otomatik tutulur</div>
         </div>
       </div>
     </div>
