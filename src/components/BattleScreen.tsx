@@ -3,12 +3,14 @@ import { FIELD_H, FIELD_W, STATS, battleResult, tickBattle } from '../game/battl
 import { sfx } from '../game/audio'
 import type { BattleUnit } from '../game/battle'
 import { UNIT_IMG } from './MapScreen'
-import type { UnitType } from '../game/types'
+import type { BannerDesign, UnitType } from '../game/types'
+import { DEFAULT_BANNER } from '../game/types'
 
 interface Props {
   initialUnits: BattleUnit[]
   provinceName: string
   enemyName: string
+  banner?: BannerDesign
   onFinish: (units: BattleUnit[], winner: 'player' | 'enemy') => void
 }
 
@@ -29,7 +31,8 @@ function makeDecor(): { x: number; y: number; k: number; s: number }[] {
 }
 const DECOR = makeDecor()
 
-export default function BattleScreen({ initialUnits, provinceName, enemyName, onFinish }: Props) {
+export default function BattleScreen({ initialUnits, provinceName, enemyName, banner, onFinish }: Props) {
+  const bd = banner ?? DEFAULT_BANNER
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const unitsRef = useRef<BattleUnit[]>(initialUnits)
   const fxRef = useRef<Fx[]>([])
@@ -143,7 +146,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       const x = u.x * sx, y = u.y * sy
       const st = STATS[u.type]
       const isPlayer = u.side === 'player'
-      const sideColor = isPlayer ? '#14b8a6' : '#dc2626'
+      const sideColor = isPlayer ? bd.field : '#dc2626'
 
       // menzil göstergesi (seçili okçu/topçu)
       if (u.id === selected && st.range > 30) {
@@ -198,6 +201,12 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       ctx.fill()
       ctx.strokeStyle = u.id === selected ? '#fbbf24' : 'rgba(0,0,0,0.6)'
       ctx.lineWidth = 1; ctx.stroke()
+      // oyuncu sancağına amblem işle
+      if (isPlayer && bd.emblem && !u.routing) {
+        ctx.font = '6px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillStyle = bd.emblemColor
+        ctx.fillText(bd.emblem, bx + 5, by + 4.5)
+      }
       // birlik tipi simgesi bayrağın yanında
       ctx.font = '8px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
       ctx.fillText(st.icon, bx + 3, by + 12)
