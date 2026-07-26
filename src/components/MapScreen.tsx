@@ -14,7 +14,7 @@ export const IC = {
 }
 export const MANA_IC: Record<ManaType, string> = { idari: IC.idari, diplomatik: IC.diplo, askeri: IC.askeri }
 export const Ic = ({ src, className = 'w-4 h-4' }: { src: string; className?: string }) => (
-  <img src={src} alt="" className={`inline-block object-contain align-[-3px] ${className}`} />
+  <img src={src} alt="" className={`inline-block object-contain flex-shrink-0 ${className}`} style={{ verticalAlign: 'middle' }} />
 )
 
 interface Props {
@@ -196,8 +196,8 @@ export default function MapScreen(p: Props) {
           <div className="flex border-b-2 border-amber-700/50 bg-gradient-to-b from-slate-800/80 to-slate-900 flex-shrink-0">
             {([['eyalet', IC.eyalet], ['diplomasi', IC.diplomasi], ['siyaset', IC.siyaset], ['gelisim', IC.gelisim], ['gunluk', IC.gunluk]] as [Tab, string][]).map(([t, icon]) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-1.5 text-[10px] sm:text-[11px] font-semibold ${tab === t ? 'bg-slate-800 text-amber-200 border-b-2 border-amber-400' : 'text-slate-400'}`}>
-                <Ic src={icon} className="w-5 h-5 mx-auto sm:inline sm:mx-0 sm:mr-1" />
+                className={`flex-1 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 ${tab === t ? 'bg-slate-800 text-amber-200 border-b-2 border-amber-400' : 'text-slate-400'}`}>
+                <Ic src={icon} className="w-5 h-5" />
                 <span className="hidden sm:inline">{{ eyalet: 'Eyalet', diplomasi: 'Diplomasi', siyaset: 'Siyaset', gelisim: 'Gelişim', gunluk: 'Günlük' }[t]}</span>
               </button>
             ))}
@@ -227,7 +227,7 @@ export default function MapScreen(p: Props) {
                   <div className="rounded-lg bg-red-950/40 border border-red-800 p-2 space-y-1.5">
                     <div className="text-[11px] text-red-200">⚠️ Çekirdeksiz eyalet: gelirin sadece %30'unu üretiyor, isyan riski yüksek.</div>
                     <button onClick={() => p.onCore(prov.id)} disabled={gs.mana.idari < coreCost(gs)}
-                      className="w-full py-1.5 rounded-lg bg-teal-700 text-xs font-bold disabled:opacity-40">
+                      className="w-full py-1.5 rounded-lg bg-teal-700 text-xs font-bold disabled:opacity-40 flex items-center justify-center gap-1">
                       Çekirdeğe Bağla (<Ic src={IC.idari} className="w-3.5 h-3.5" />{coreCost(gs)})
                     </button>
                   </div>
@@ -379,7 +379,7 @@ export default function MapScreen(p: Props) {
                       <button key={e} onClick={() => p.onEdict(e)} disabled={gs.mana[m] < cost || gs.edict === e}
                         className="rounded-lg bg-slate-800 border border-slate-600 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">
                         <div className="font-bold">{name}</div>
-                        <div className="text-amber-300"><Ic src={MANA_IC[m as ManaType]} className="w-3.5 h-3.5" />{cost}</div>
+                        <div className="text-amber-300 flex items-center justify-center gap-0.5"><Ic src={MANA_IC[m as ManaType]} className="w-3.5 h-3.5" />{cost}</div>
                         {gs.edict === e && <div className="text-teal-400">✅ Aktif</div>}
                       </button>
                     ))}
@@ -394,7 +394,7 @@ export default function MapScreen(p: Props) {
                         className={`w-full text-left rounded-lg border p-2 text-[10px] disabled:opacity-40 active:scale-[0.99] transition ${gs.laws[l] ? 'border-teal-500 bg-teal-950/40' : 'border-slate-600 bg-slate-800'}`}>
                         <div className="flex justify-between font-bold text-[11px]">
                           <span>{LAW_INFO[l].icon} {LAW_INFO[l].name}</span>
-                          <span>{gs.laws[l] ? '✅ Yürürlükte (kaldır)' : <><Ic src={IC.idari} className="w-3 h-3" />{LAW_INFO[l].cost}</>}</span>
+                          <span className="inline-flex items-center gap-0.5">{gs.laws[l] ? '✅ Yürürlükte (kaldır)' : <><Ic src={IC.idari} className="w-3 h-3" />{LAW_INFO[l].cost}</>}</span>
                         </div>
                         <div className="text-slate-400">{LAW_INFO[l].effects}</div>
                       </button>
@@ -464,7 +464,7 @@ export default function MapScreen(p: Props) {
 
           <div className="p-2.5 border-t border-slate-700 flex-shrink-0">
             <button onClick={p.onEndTurn}
-              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-sm active:scale-[0.98] transition border border-amber-500/30">
+              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-sm active:scale-[0.98] transition border border-amber-500/30 flex items-center justify-center gap-1.5">
               <Ic src={IC.turn} className="w-4 h-4" /> Turu Bitir
             </button>
           </div>
@@ -526,11 +526,11 @@ function FactionCard({ f, gs, onAction }: { f: Faction; gs: GameState; onAction:
         {f.state === 'baris' ? (
           <>
             <button onClick={() => onAction(f.id, 'hediye')} disabled={player.gold < 50}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">🎁 Hediye (<Ic src={IC.gold} className="w-3 h-3" />50)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 flex items-center justify-center gap-0.5">🎁 Hediye (<Ic src={IC.gold} className="w-3 h-3" />50)</button>
             <button onClick={() => onAction(f.id, 'ticaret')} disabled={f.tradeAgreement || gs.mana.diplomatik < 20 || rel < 0}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">💱 Ticaret (<Ic src={IC.diplo} className="w-3 h-3" />20)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 flex items-center justify-center gap-0.5">💱 Ticaret (<Ic src={IC.diplo} className="w-3 h-3" />20)</button>
             <button onClick={() => onAction(f.id, 'ittifak')} disabled={!!f.alliance || rel < 50 || gs.mana.diplomatik < 40}
-              className="rounded-lg bg-teal-800 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 col-span-2">
+              className="rounded-lg bg-teal-800 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 col-span-2 flex items-center justify-center gap-0.5">
               🤝 {f.alliance ? 'Müttefiksiniz' : <>İttifak Kur (<Ic src={IC.diplo} className="w-3 h-3" />40, ilişki 50+)</>}
             </button>
             <button onClick={() => onAction(f.id, 'savas')}
@@ -539,12 +539,12 @@ function FactionCard({ f, gs, onAction }: { f: Faction; gs: GameState; onAction:
         ) : (
           <>
             <button onClick={() => onAction(f.id, 'beyaz_baris')} disabled={gs.mana.diplomatik < 10}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40">🕊️ Beyaz Barış (<Ic src={IC.diplo} className="w-3 h-3" />10)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 flex items-center justify-center gap-0.5">🕊️ Beyaz Barış (<Ic src={IC.diplo} className="w-3 h-3" />10)</button>
             <button onClick={() => onAction(f.id, 'galibiyet_barisi')} disabled={score < 40 || gs.mana.diplomatik < 20}
               className="rounded-lg bg-teal-700 p-1.5 text-[10px] disabled:opacity-40">👑 Galibiyet Barışı {score >= 40 ? '' : '(skor 40+)'}</button>
             {score <= -40 && (
               <button onClick={() => onAction(f.id, 'maglubiyet_barisi')} disabled={player.gold < 100}
-                className="rounded-lg bg-red-900 p-1.5 text-[10px] disabled:opacity-40 col-span-2">🏳️ Teslim Ol (<Ic src={IC.gold} className="w-3 h-3" />100 tazminat)</button>
+                className="rounded-lg bg-red-900 p-1.5 text-[10px] disabled:opacity-40 col-span-2 flex items-center justify-center gap-0.5">🏳️ Teslim Ol (<Ic src={IC.gold} className="w-3 h-3" />100 tazminat)</button>
             )}
           </>
         )}
