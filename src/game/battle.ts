@@ -34,10 +34,10 @@ function makeUnit(side: 'player' | 'enemy', type: UnitType, x: number, y: number
 }
 
 export interface BattleOpts {
-  defSide?: 'player' | 'enemy'
-  defBonusHp?: number
-  playerDmgMult?: number
-  playerMoraleResist?: number
+  defSide?: 'player' | 'enemy'  // savunan taraf (arazi bonusu alır)
+  defBonusHp?: number           // arazi bonusu (dağ +20, orman +10)
+  playerDmgMult?: number        // Talim gelişimi
+  playerMoraleResist?: number   // Komuta Sanatı (0-1 arası azaltma)
 }
 
 export function createBattle(playerArmy: ArmyComp, enemyArmy: ArmyComp, opts?: BattleOpts): BattleUnit[] {
@@ -70,7 +70,32 @@ export function createBattle(playerArmy: ArmyComp, enemyArmy: ArmyComp, opts?: B
 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
 
-export function tickBattle(units: BattleUnit[], dt: number, onAttack?: (u: BattleUnit) => void): void {
+// Taktiksel hedef seçimi: birlik tipine göre öncelik
+function pickTarget(u: BattleUnit, foes: BattleUnit[]): BattleUnit {
+  const scored = foes.map(e => {
+    const d = dist(u, e)
+    let pri = 0
+    if (u.type === 'suvari') {
+      // Süvari: okçu ve topçu avcısı (yanlara sark)
+      if (e.type === 'okcu') pri = 120
+      else if (e.type === 'topcu') pri = 140
+      else pri = 20
+    } else if (u.type === 'piyade') {
+      // Piyade: ön saftaki yakın düşmanı tut
+      pri = e.type === 'piyade' ? 40 : e.type === 'suvari' ? 30 : 10
+    } else if (u.type === 'okcu') {
+      // Okçu: zayıf/yaralı hedefe odaklan (odak ateşi)
+      pri = (100 - e.hp) * 0.8 + (e.type === 'piyade' ? 15 : 0)
+    } else {
+      // Topçu: en diri ve kalabalık hedefi vur
+      pri = e.hp * 0.6 + (e.type === 'piyade' ? 20 : 0)
+    }
+    return { e, score: pri - d * (u.type === 'okcu' || u.type === 'topcu' ? 0.05 : 0.6) }
+  })
+  return scored.reduce((a, b) => (a.score > b.score ? a : b)).e
+}
+
+export function tickBattle(units: BattleUnit[], dt: number, onAttack?: (u: BattleUnit, target: BattleUnit) => void): void {
   const alive = units.filter(u => !u.dead)
   for (const u of alive) {
     const st = STATS[u.type]
@@ -87,18 +112,24 @@ export function tickBattle(units: BattleUnit[], dt: number, onAttack?: (u: Battl
     if (u.side === 'enemy') {
       const foes = alive.filter(e => e.side === 'player')
       if (foes.length) {
-        const nearest = foes.reduce((a, b) => dist(u, a) < dist(u, b) ? a : b)
-        u.targetEnemy = nearest.id
-        target = nearest
+        target = pickTarget(u, foes)
+        u.targetEnemy = target.id
       }
     } else if (!target) {
+      // Emirsiz oyuncu birliği: menzile giren düşmana otomatik karşılık verir (ama yerinden ayrılmaz)
       const foes = alive.filter(e => e.side === 'enemy')
       const inRange = foes.filter(e => dist(u, e) <= st.range)
-      if (inRange.length) target = inRange.reduce((a, b) => dist(u, a) < dist(u, b) ? a : b)
+      if (inRange.length) target = pickTarget(u, inRange)
     }
 
     if (target && !target.dead) {
       const d = dist(u, target)
+      // Atış birlikleri yakın temastan kaçar (kiting)
+      if ((u.type === 'okcu' || u.type === 'topcu') && d < 55) {
+        const away = Math.atan2(u.y - target.y, u.x - target.x)
+        u.tx = Math.max(15, Math.min(FIELD_W - 15, u.x + Math.cos(away) * 70))
+        u.ty = Math.max(20, Math.min(FIELD_H - 20, u.y + Math.sin(away) * 70))
+      }
       if (d <= st.range) {
         if (u.cooldown <= 0) {
           const armor = STATS[target.type].armor
@@ -106,13 +137,20 @@ export function tickBattle(units: BattleUnit[], dt: number, onAttack?: (u: Battl
           target.hp -= dmg
           target.morale -= dmg * 0.8 * (1 - target.moraleResist)
           u.cooldown = u.type === 'okcu' ? 1.6 : u.type === 'topcu' ? 2.4 : 1.0
-          if (onAttack) onAttack(u)
+          if (onAttack) onAttack(u, target)
           if (target.hp <= 0 && !target.dead) { target.dead = true; u.kills++ }
           if (target.morale <= 20 && !target.routing) target.routing = true
         }
       } else {
+        // AI veya saldırı emri almış oyuncu birliği hedefe yaklaşır
         if (u.side === 'enemy' || u.targetEnemy != null) {
-          u.tx = target.x; u.ty = target.y
+          // Süvari geniş yay çizerek (yan hücum) yaklaşır
+          if (u.type === 'suvari' && d > 120) {
+            const flank = u.id % 2 === 0 ? 1 : -1
+            u.tx = target.x; u.ty = Math.max(20, Math.min(FIELD_H - 20, target.y + flank * 60))
+          } else {
+            u.tx = target.x; u.ty = target.y
+          }
         }
       }
     }

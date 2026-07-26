@@ -9,19 +9,20 @@ export const TAX_APPROVAL: Record<TaxLevel, number> = { dusuk: 3, orta: 0, yukse
 export function newGame(): GameState {
   const provinces: Record<string, Province> = {}
   const add = (p: Province) => { provinces[p.id] = p }
-  add(P('merkez', 'Payitaht', 46, 55, 'player', 90, 6, 'duzluk', 6, ['ova', 'liman', 'dag', 'orman'], { piyade: 2, okcu: 1, suvari: 0 }, true))
-  add(P('ova', 'Bereket Ovası', 34, 68, 'player', 55, 9, 'duzluk', 8, ['merkez', 'liman', 'guney'], { piyade: 1, okcu: 0, suvari: 0 }))
-  add(P('liman', 'İnci Limanı', 58, 66, 'player', 75, 4, 'kiyi', 5, ['merkez', 'ova', 'dogu_kapi'], { piyade: 1, okcu: 1, suvari: 0 }))
-  add(P('dag', 'Granit Dağı', 46, 36, 'kuzey', 70, 2, 'dag', 4, ['merkez', 'orman', 'buz', 'kuzey_kalesi'], { piyade: 1, okcu: 1, suvari: 0 }))
-  add(P('buz', 'Buzul Topraklar', 34, 18, 'kuzey', 50, 2, 'dag', 3, ['dag', 'kuzey_kalesi'], { piyade: 1, okcu: 0, suvari: 0 }))
-  add(P('kuzey_kalesi', 'Kuzey Kalesi', 58, 16, 'kuzey', 85, 3, 'dag', 5, ['dag', 'buz', 'orman'], { piyade: 2, okcu: 1, suvari: 1 }, true))
-  add(P('dogu_kapi', 'Doğu Kapısı', 74, 58, 'han', 65, 3, 'col', 4, ['liman', 'col', 'han_merkez'], { piyade: 1, okcu: 1, suvari: 0 }))
-  add(P('col', 'Kızıl Çöl', 86, 44, 'han', 45, 1, 'col', 3, ['dogu_kapi', 'han_merkez'], { piyade: 0, okcu: 1, suvari: 1 }))
-  add(P('han_merkez', 'Han Sarayı', 88, 70, 'han', 90, 5, 'col', 5, ['dogu_kapi', 'col'], { piyade: 1, okcu: 1, suvari: 2 }, true))
-  add(P('orman', 'Ulu Orman', 30, 44, 'bati', 60, 5, 'orman', 5, ['merkez', 'dag', 'bati_limani', 'kuzey_kalesi'], { piyade: 1, okcu: 1, suvari: 0 }))
-  add(P('bati_limani', 'Batı Limanı', 14, 52, 'bati', 70, 4, 'kiyi', 5, ['orman', 'senato'], { piyade: 1, okcu: 0, suvari: 0 }))
-  add(P('senato', 'Senato Şehri', 14, 30, 'bati', 85, 4, 'orman', 5, ['bati_limani'], { piyade: 2, okcu: 1, suvari: 0 }, true))
-  add(P('guney', 'Güney Bozkırı', 34, 86, 'player', 40, 6, 'duzluk', 6, ['ova'], { piyade: 0, okcu: 0, suvari: 1 }))
+  // Konumlar harita arka planına göre: kuzey dağlık, batı ormanlık, doğu çöl, güney kıyı
+  add(P('merkez', 'Payitaht', 45, 71, 'player', 90, 6, 'duzluk', 6, ['ova', 'liman', 'dag', 'orman'], { piyade: 2, okcu: 1, suvari: 0 }, true))
+  add(P('ova', 'Bereket Ovası', 38, 84, 'player', 55, 9, 'duzluk', 8, ['merkez', 'liman', 'guney', 'orman'], { piyade: 1, okcu: 0, suvari: 0 }))
+  add(P('liman', 'İnci Limanı', 57, 81, 'player', 75, 4, 'kiyi', 5, ['merkez', 'ova', 'dogu_kapi'], { piyade: 1, okcu: 1, suvari: 0 }))
+  add(P('guney', 'Güney Bozkırı', 33, 90, 'player', 40, 6, 'duzluk', 6, ['ova'], { piyade: 0, okcu: 0, suvari: 1 }))
+  add(P('dag', 'Granit Geçidi', 48, 42, 'kuzey', 70, 2, 'dag', 4, ['merkez', 'orman', 'buz', 'kuzey_kalesi'], { piyade: 1, okcu: 1, suvari: 0 }))
+  add(P('buz', 'Buzul Topraklar', 30, 16, 'kuzey', 50, 2, 'dag', 3, ['dag', 'kuzey_kalesi'], { piyade: 1, okcu: 0, suvari: 0 }))
+  add(P('kuzey_kalesi', 'Kuzey Kalesi', 56, 19, 'kuzey', 85, 3, 'dag', 5, ['dag', 'buz', 'orman'], { piyade: 2, okcu: 1, suvari: 1 }, true))
+  add(P('dogu_kapi', 'Doğu Kapısı', 68, 68, 'han', 65, 3, 'col', 4, ['liman', 'col', 'han_merkez'], { piyade: 1, okcu: 1, suvari: 0 }))
+  add(P('col', 'Kızıl Çöl', 76, 48, 'han', 45, 1, 'col', 3, ['dogu_kapi', 'han_merkez'], { piyade: 0, okcu: 1, suvari: 1 }))
+  add(P('han_merkez', 'Han Sarayı', 86, 73, 'han', 90, 5, 'col', 5, ['dogu_kapi', 'col'], { piyade: 1, okcu: 1, suvari: 2 }, true))
+  add(P('orman', 'Ulu Orman', 26, 55, 'bati', 60, 5, 'orman', 5, ['merkez', 'dag', 'bati_limani', 'kuzey_kalesi', 'ova'], { piyade: 1, okcu: 1, suvari: 0 }))
+  add(P('bati_limani', 'Batı Limanı', 10, 61, 'bati', 70, 4, 'kiyi', 5, ['orman', 'senato'], { piyade: 1, okcu: 0, suvari: 0 }))
+  add(P('senato', 'Senato Şehri', 13, 32, 'bati', 85, 4, 'orman', 5, ['bati_limani'], { piyade: 2, okcu: 1, suvari: 0 }, true))
 
   const factions: Record<string, Faction> = {
     player: { id: 'player', name: 'Aksaray Devleti', color: '#14b8a6', isPlayer: true, gold: 300, food: 20, army: { piyade: 3, okcu: 2, suvari: 1 }, armyLocation: 'merkez', alive: true, relation: 0, state: 'baris', tradeAgreement: false },
@@ -47,6 +48,7 @@ export const armyPower = (a?: ArmyComp) => !a ? 0 : a.piyade * 10 + a.okcu * 9 +
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 const rand = (n: number) => Math.floor(Math.random() * n)
 
+// Eyaletin gerçek gelirini hesapla (işgal/çekirdek/bina dahil)
 export function provinceIncome(_s: GameState, p: Province): { gold: number; food: number } {
   if (p.owner !== 'player' || p.occupiedBy) return { gold: 0, food: 0 }
   let gold = p.gold, food = p.food
@@ -66,47 +68,98 @@ function aiTakeTurn(s: GameState, f: Faction, log: string[]) {
   f.gold += provs.reduce((t, p) => t + p.gold, 0)
   f.food += provs.reduce((t, p) => t + p.food, 0) - armySize(f.army)
 
-  if (f.gold > 200 && f.army && armySize(f.army) < 12) {
-    f.army.piyade += 1; f.gold -= 60
+  // === AI ORDU İDARESİ: dengeli kompozisyon kur, yedek altın tut ===
+  if (f.army && f.gold > 160 && armySize(f.army) < 13) {
+    const a = f.army
+    // eksik tipe göre alım: piyade omurga, okçu destek, süvari/topçu lüks
+    if (a.piyade < 3) { a.piyade += 1; f.gold -= 60 }
+    else if (a.okcu < 2) { a.okcu += 1; f.gold -= 50 }
+    else if ((a.topcu ?? 0) < 1 && f.gold > 300) { a.topcu = (a.topcu ?? 0) + 1; f.gold -= 120 }
+    else if (a.suvari < 2 && f.gold > 240) { a.suvari += 1; f.gold -= 80 }
+    else if (f.gold > 320) { a.piyade += 1; f.gold -= 60 }
   }
+  // zengin AI sınır garnizonlarını takviye eder
+  if (f.gold > 350) {
+    const border = provs.find(p => p.adj.some(a => s.provinces[a].owner === 'player') && armySize(p.garrison) < 3)
+    if (border) { border.garrison.piyade += 1; f.gold -= 60 }
+  }
+
   const player = s.factions.player
+  const myPow = armyPower(f.army)
+  const plPow = armyPower(player.army)
+
   if (f.state === 'baris') {
-    f.relation = clamp(f.relation + rand(7) - 3 + (s.techs.diplomatik >= 3 ? 2 : 0) + (f.alliance ? 3 : 0), -100, 100)
-    if (!f.alliance && f.relation < -50 && armyPower(f.army) > armyPower(player.army) * 1.1) {
+    // ilişki gelişimi: komşuluk sürtüşmesi, oyuncu büyürse korku
+    const playerProvN = Object.values(s.provinces).filter(p => p.owner === 'player').length
+    const fear = playerProvN >= 5 ? -2 : 0
+    f.relation = clamp(f.relation + rand(7) - 3 + (s.techs.diplomatik >= 3 ? 2 : 0) + (f.alliance ? 3 : 0) + fear, -100, 100)
+    if (!f.alliance && f.relation < -50 && myPow > plPow * 1.1) {
       f.state = 'savas'
       s.warScore[f.id] = 0
       log.push(`⚔️ ${f.name} bize SAVAŞ İLAN ETTİ!`)
     }
   } else {
-    if (f.army && f.armyLocation && armySize(f.army) > 2) {
+    if (f.army && f.armyLocation && armySize(f.army) > 0) {
       const cur = s.provinces[f.armyLocation]
-      const target = cur.adj.map(a => s.provinces[a]).find(p => p.owner === 'player' && !p.occupiedBy)
-      if (target) {
-        if (target.id === player.armyLocation && armySize(player.army) > 0) {
-          s.pendingBattle = { provinceId: target.id, attacker: f.id }
-          log.push(`🔥 ${f.name} ordusu ${target.name} üzerine yürüyor!`)
-        } else {
-          const gpow = armyPower(target.garrison) + 15 + (target.terrain === 'dag' ? 20 : target.terrain === 'orman' ? 10 : 0)
-          if (armyPower(f.army) > gpow) {
+      const capital = provs.find(p => p.isCapital) ?? provs[0]
+      const playerArmyAt = player.armyLocation ? s.provinces[player.armyLocation] : null
+
+      // 1) BAŞKENT TEHLİKEDE: oyuncu ordusu başkente komşuysa geri dön
+      if (capital && playerArmyAt && capital.adj.includes(playerArmyAt.id) && f.armyLocation !== capital.id && plPow >= myPow * 0.7) {
+        f.armyLocation = cur.adj.includes(capital.id) ? capital.id : cur.adj.find(a => s.provinces[a].owner === f.id) ?? f.armyLocation
+        log.push(`🛡️ ${f.name} ordusu başkentlerini korumaya koştu!`)
+      }
+      // 2) ZAYIFSA GERİ ÇEKİL: oyuncu ordusu aynı eyalette ve güçlüyse kaç
+      else if (player.armyLocation === f.armyLocation && plPow > myPow * 1.2) {
+        const safe = cur.adj.map(a => s.provinces[a]).find(p => p.owner === f.id)
+        if (safe) { f.armyLocation = safe.id; log.push(`🏃 ${f.name} ordusu üstün gücümüzden kaçtı!`) }
+      }
+      // 3) SALDIRI: en zayıf komşu oyuncu eyaletini hedefle
+      else if (armySize(f.army) > 2) {
+        const targets = cur.adj.map(a => s.provinces[a]).filter(p => (p.owner === 'player' || p.owner === 'asi') && !p.occupiedBy)
+        if (targets.length) {
+          const defPow = (p: Province) => armyPower(p.garrison) + 15 + (p.terrain === 'dag' ? 20 : p.terrain === 'orman' ? 10 : 0) + (p.id === player.armyLocation ? plPow : 0)
+          const target = targets.reduce((a, b) => (defPow(a) < defPow(b) ? a : b))
+          if (target.id === player.armyLocation && armySize(player.army) > 0) {
+            // oyuncu ordusuyla muharebe: sadece güç dengesi makulse
+            if (myPow > plPow * 0.75) {
+              s.pendingBattle = { provinceId: target.id, attacker: f.id }
+              log.push(`🔥 ${f.name} ordusu ${target.name} üzerine yürüyor!`)
+            } else {
+              const safe = cur.adj.map(a => s.provinces[a]).find(p => p.owner === f.id)
+              if (safe) f.armyLocation = safe.id
+            }
+          } else if (myPow > defPow(target)) {
             target.owner = f.id
             target.core = false
             target.garrison = { piyade: 1, okcu: 0, suvari: 0 }
             f.army.piyade = Math.max(0, f.army.piyade - 1)
             s.warScore[f.id] = (s.warScore[f.id] ?? 0) - 20
             log.push(`💥 ${f.name}, ${target.name} eyaletini ELE GEÇİRDİ!`)
-          } else {
+          } else if (myPow > defPow(target) * 0.7) {
+            // kuşatma denemesi: zayıf ihtimal ama yıpratır
             f.army.piyade = Math.max(0, f.army.piyade - 1)
+            target.garrison.piyade = Math.max(0, target.garrison.piyade - 1)
             s.warScore[f.id] = (s.warScore[f.id] ?? 0) + 10
             log.push(`🛡️ ${target.name} garnizonu ${f.name} saldırısını püskürttü.`)
+          } else {
+            // hedef çok güçlü: kendi toprağında bekle, güç topla
+            const own = cur.adj.map(a => s.provinces[a]).find(p => p.owner === f.id)
+            if (own && cur.owner !== f.id) f.armyLocation = own.id
           }
+        } else {
+          // oyuncuya komşu değil: oyuncuya doğru ilerle (kendi topraklarından geçerek)
+          const towardPlayer = cur.adj
+            .map(a => s.provinces[a])
+            .filter(p => p.owner !== 'player' || p.adj.some(a2 => s.provinces[a2].owner === 'player'))
+          const next = (towardPlayer.length ? towardPlayer : cur.adj.map(a => s.provinces[a]))[rand(towardPlayer.length ? towardPlayer.length : cur.adj.length)]
+          if (next) f.armyLocation = next.id
         }
-      } else {
-        const next = cur.adj[rand(cur.adj.length)]
-        f.armyLocation = next
       }
     }
+    // AI barış değerlendirmesi: eziliyorsa veya savaş sürünce yorulduysa
     const score = s.warScore[f.id] ?? 0
-    if ((score > 50 || armyPower(f.army) < 15) && Math.random() < 0.4) {
+    if ((score > 50 || myPow < 15) && Math.random() < 0.4) {
       f.state = 'baris'; f.relation = -20
       Object.values(s.provinces).forEach(p => { if (p.occupiedBy === 'player' && p.owner === f.id) p.occupiedBy = undefined })
       delete s.warScore[f.id]
@@ -115,7 +168,7 @@ function aiTakeTurn(s: GameState, f: Faction, log: string[]) {
   }
 }
 
-export const ARMY_LEVELS = [0, 20, 50, 90, 140, 200]
+export const ARMY_LEVELS = [0, 20, 50, 90, 140, 200] // XP eşikleri (seviye 0-5)
 export function armyLevel(xp: number): number {
   let lvl = 0
   ARMY_LEVELS.forEach((th, i) => { if (xp >= th) lvl = i })
@@ -197,6 +250,7 @@ export function endTurn(s: GameState): GameState {
   const owned = Object.values(ns.provinces).filter(p => p.owner === 'player' && !p.occupiedBy)
   const occupiedByUs = Object.values(ns.provinces).filter(p => p.occupiedBy === 'player')
 
+  // === EKONOMİ ===
   const taxMult = TAX_MULT[ns.tax] * (ns.techs.idari >= 1 ? 1.1 : 1)
   let income = Math.round(owned.reduce((t, p) => t + provinceIncome(ns, p).gold, 0) * taxMult)
   if (ns.laws.serbest_ticaret) income += 15
@@ -210,34 +264,42 @@ export function endTurn(s: GameState): GameState {
   log.push(`💰 Gelir: +${income + tradeBonus} altın${tradeBonus ? ` (ticaret ${tradeBonus})` : ''}`)
   if (player.food < 0) { player.food = 0; ns.stability -= 8; ns.groups.halk -= 10; log.push('🌾 KITLIK! Erzak bitti, istikrar sarsıldı.') }
 
+  // === NÜFUZ (EU4 mana) ===
   const atWar = Object.values(ns.factions).some(f => !f.isPlayer && f.alive && f.state === 'savas')
   ns.mana.idari = clamp(ns.mana.idari + 5 + (ns.groups.soylular >= 70 ? 2 : 0), 0, 150)
   ns.mana.diplomatik = clamp(ns.mana.diplomatik + 5, 0, 150)
   ns.mana.askeri = clamp(ns.mana.askeri + 5 + (ns.groups.ordu >= 70 ? 2 : 0) + (atWar ? 2 : 0), 0, 150)
 
+  // === İLGİ GRUPLARI (Vic3) ===
   const g = ns.groups
   g.halk = clamp(g.halk + TAX_APPROVAL[ns.tax] * 2 + (ns.edict === 'panayir' ? 8 : 0) + (atWar ? -2 : 1), 0, 100)
   g.soylular = clamp(g.soylular + (ns.tax === 'yuksek' ? 1 : 0) + (owned.length >= 6 ? 1 : 0), 0, 100)
   g.ordu = clamp(g.ordu + (atWar ? 2 : -1) + (armySize(player.army) < 4 ? -3 : 1), 0, 100)
   g.tuccarlar = clamp(g.tuccarlar + tradeCount * 2 - (atWar ? 2 : 0), 0, 100)
+  // kanun etkileri
   if (ns.laws.serf_azadi) { g.halk = clamp(g.halk + 2, 0, 100); g.soylular = clamp(g.soylular - 2, 0, 100) }
   if (ns.laws.zorunlu_askerlik) { g.ordu = clamp(g.ordu + 2, 0, 100); g.halk = clamp(g.halk - 1, 0, 100) }
   if (ns.laws.serbest_ticaret) { g.tuccarlar = clamp(g.tuccarlar + 2, 0, 100); g.soylular = clamp(g.soylular - 1, 0, 100) }
+  // dengeye dönüş: gruplar zamanla 50'ye yaklaşır
   ;(Object.keys(g) as (keyof typeof g)[]).forEach(k => { if (g[k] < 50) g[k] = clamp(g[k] + 3, 0, 100) })
+  // memnuniyetsiz grup istikrarı sarsar
   const unhappy = Object.values(g).filter(v => v < 30).length
   if (unhappy > 0) { ns.stability -= unhappy * 3; log.push('😡 Memnuniyetsiz gruplar devleti içten kemiriyor!') }
 
+  // === SİYASET ===
   ns.approval = clamp(ns.approval + TAX_APPROVAL[ns.tax] + (ns.edict === 'panayir' ? 5 : 0) + (g.halk - 50) / 10, 0, 100)
   ns.stability = clamp(ns.stability + (ns.approval >= 50 ? 2 : -3) + (ns.edict === 'panayir' ? 2 : 0), 0, 100)
   if (ns.edict === 'askeri_seferberlik') player.gold += 20
   if (ns.approval < 25) { ns.stability -= 5; log.push('😡 Halk hoşnutsuz!') }
   if (ns.stability <= 10) { player.gold = Math.round(player.gold * 0.85); log.push('🔥 İç karışıklık hazinenizi yağmalattı!') }
 
+  // === EYALETLER: asker kaynağı, isyan, garnizon ===
   const uncoredCount = Object.values(ns.provinces).filter(p => p.owner === 'player' && !p.core).length
   const overextension = Math.max(0, uncoredCount - 3)
   owned.forEach(p => {
     const regen = 1 + (ns.laws.zorunlu_askerlik ? 1 : 0) + (ns.techs.askeri >= 2 ? 1 : 0) + (p.building === 'kosla' ? 1 : 0)
     p.manpower = Math.min(p.maxManpower + (p.building === 'kosla' ? 2 : 0), p.manpower + regen)
+    // isyan
     let du = 0
     if (!p.core) du += 3
     du += overextension
@@ -253,15 +315,18 @@ export function endTurn(s: GameState): GameState {
     } else if (p.unrest > 70) {
       log.push(`⚠️ ${p.name} kaynıyor! (isyan riski %${p.unrest})`)
     }
+    // garnizon yenilenmesi
     if (p.garrison.piyade < 2 && player.gold >= 40 && Math.random() < 0.5) { p.garrison.piyade += 1; player.gold -= 40 }
   })
   if (occupiedByUs.length > 0) log.push(`🏴 ${occupiedByUs.length} düşman eyaleti işgalimiz altında — barış masasında ilhak edilebilir.`)
 
+  // === OLAY ===
   if (Math.random() < 0.5) {
     const ev = EVENTS[rand(EVENTS.length)]
     log.push(`📜 Olay: ${ev.text} (${ev.effect(ns)})`)
   }
 
+  // === KOALİSYON (EU4 agresif genişleme tepkisi) ===
   const playerProvCount = Object.values(ns.provinces).filter(p => p.owner === 'player').length
   if (!ns.coalitionFormed && playerProvCount >= 7) {
     ns.coalitionFormed = true
@@ -274,11 +339,13 @@ export function endTurn(s: GameState): GameState {
     if (enemies.length > 0) log.push('🔥 KOALİSYON! Genişlemenizden korkan devletler size karşı birleşti!')
   }
 
+  // === SEÇİMLİ OLAY ===
   if (!ns.pendingEvent && Math.random() < 0.3) {
     const ev = CHOICE_EVENTS[rand(CHOICE_EVENTS.length)]
     ns.pendingEvent = { id: ev.id, title: ev.title, text: ev.text, options: ev.options.map(o => ({ label: o.label, desc: o.desc })) }
   }
 
+  // === AI ===
   Object.values(ns.factions).filter(f => !f.isPlayer && f.alive && f.id !== 'asi').forEach(f => aiTakeTurn(ns, f, log))
 
   ns.stability = clamp(ns.stability, 0, 100)
