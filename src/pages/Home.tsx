@@ -56,6 +56,7 @@ export default function Home() {
     setGs(prev => { if (!prev) return prev; const ns: GameState = JSON.parse(JSON.stringify(prev)); fn(ns); saveGame(ns); return ns })
   }
 
+  // === ASKER TOPLAMA (manpower ile) ===
   const recruit = (t: UnitType) => update(s => {
     const p = s.factions.player
     const info = UNIT_INFO[t]
@@ -69,6 +70,7 @@ export default function Home() {
     }
   })
 
+  // === BİNA İNŞASI (Vic3) ===
   const build = (provId: string, b: Building) => update(s => {
     const p = s.provinces[provId]
     const player = s.factions.player
@@ -80,6 +82,7 @@ export default function Home() {
     }
   })
 
+  // === ÇEKİRDEK (EU4) ===
   const core = (provId: string) => update(s => {
     const p = s.provinces[provId]
     const cost = coreCost(s)
@@ -91,6 +94,7 @@ export default function Home() {
     }
   })
 
+  // === KANUN (Vic3) ===
   const toggleLaw = (law: Law) => update(s => {
     const info = LAW_INFO[law]
     if (s.laws[law]) {
@@ -103,6 +107,7 @@ export default function Home() {
     }
   })
 
+  // === GELİŞİM (tech) ===
   const research = (track: ManaType) => update(s => {
     const lvl = s.techs[track]
     if (lvl < 3 && s.mana[track] >= TECH_COSTS[lvl]) {
@@ -124,6 +129,7 @@ export default function Home() {
     }
   })
 
+  // === DİPLOMASİ + BARIŞ MASASI (EU4) ===
   const diplomacy = (fid: string, action: 'hediye' | 'ticaret' | 'savas' | 'ittifak' | 'beyaz_baris' | 'galibiyet_barisi' | 'maglubiyet_barisi') => update(s => {
     const f = s.factions[fid]; const p = s.factions.player
     const clamp = (v: number) => Math.max(-100, Math.min(100, v))
@@ -174,6 +180,7 @@ export default function Home() {
     }
   })
 
+  // === ORDU HAREKETİ / SALDIRI ===
   const moveArmy = (provId: string) => {
     if (!gs || armyMoved) return
     const prov = gs.provinces[provId]
@@ -336,18 +343,28 @@ export default function Home() {
         onSetTax={setTax} onEdict={edict} onDiplomacy={diplomacy}
         onBuild={build} onCore={core} onToggleLaw={toggleLaw} onResearch={research} />
       {gs.pendingEvent && (
-        <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-4 z-30">
-          <div className="bg-slate-900 border border-amber-700 rounded-2xl p-5 max-w-md w-full">
-            <div className="text-lg font-bold mb-1">{gs.pendingEvent.title}</div>
-            <p className="text-sm text-slate-300 mb-4">{gs.pendingEvent.text}</p>
-            <div className="space-y-2">
-              {gs.pendingEvent.options.map((o, i) => (
-                <button key={i} onClick={() => chooseEvent(i)}
-                  className="w-full text-left rounded-xl bg-slate-800 border border-slate-600 hover:border-teal-500 p-3 transition">
-                  <div className="font-bold text-sm">{o.label}</div>
-                  <div className="text-xs text-slate-400">{o.desc}</div>
-                </button>
-              ))}
+        <div className="absolute inset-0 bg-black/75 flex items-center justify-center p-4 z-30">
+          <div className="bg-slate-900 border-2 border-amber-700/80 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl shadow-black">
+            {/* EU4 tarzı olay tablosu */}
+            {gs.pendingEvent.img && (
+              <div className="relative border-b-2 border-amber-700/80">
+                <img src={gs.pendingEvent.img} alt="" className="w-full h-44 sm:h-52 object-cover" />
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
+                <div className="absolute bottom-2.5 left-4 right-4 text-lg font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">{gs.pendingEvent.title}</div>
+              </div>
+            )}
+            <div className="p-5">
+              {!gs.pendingEvent.img && <div className="text-lg font-bold mb-1">{gs.pendingEvent.title}</div>}
+              <p className="text-sm text-slate-300 mb-4 italic">{gs.pendingEvent.text}</p>
+              <div className="space-y-2">
+                {gs.pendingEvent.options.map((o, i) => (
+                  <button key={i} onClick={() => chooseEvent(i)}
+                    className="w-full text-left rounded-xl bg-slate-800 border border-slate-600 hover:border-teal-500 p-3 transition">
+                    <div className="font-bold text-sm">{o.label}</div>
+                    <div className="text-xs text-slate-400">{o.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -402,7 +419,7 @@ function Menu({ onStart, onContinue }: { onStart: () => void; onContinue: () => 
             className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50">
             ⚔️ {hasSave ? 'Yeni Sefer' : 'Tahta Otur'}
           </button>
-          <div className="text-[10px] text-slate-500 mt-4">v3.0 · Kayıt otomatik tutulur</div>
+          <div className="text-[10px] text-slate-500 mt-4">v6.0 · Kayıt otomatik tutulur</div>
         </div>
       </div>
     </div>
