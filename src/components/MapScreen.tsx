@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Delaunay } from 'd3-delaunay'
-import { UNIT_INFO, BUILDING_INFO, LAW_INFO, GROUP_INFO, TECH_INFO, TERRAIN_INFO } from '../game/types'
-import type { Building, Faction, GameState, Law, ManaType, UnitType } from '../game/types'
+import { UNIT_INFO, BUILDING_INFO, LAW_INFO, GROUP_INFO, TECH_INFO, TERRAIN_INFO, DEFAULT_BANNER } from '../game/types'
+import type { BannerDesign, Building, Faction, GameState, Law, ManaType, UnitType } from '../game/types'
 import { ARMY_LEVELS, TAX_APPROVAL, armyLevel, armyPower, armySize, coreCost, provinceIncome } from '../game/strategy'
+import { BannerDesigner, BannerSVG } from './Banner'
 
 interface Props {
   gs: GameState
@@ -16,6 +17,7 @@ interface Props {
   onCore: (provId: string) => void
   onToggleLaw: (law: Law) => void
   onResearch: (track: ManaType) => void
+  onBannerChange: (d: BannerDesign) => void
 }
 
 type Tab = 'eyalet' | 'diplomasi' | 'siyaset' | 'gelisim' | 'gunluk'
@@ -41,6 +43,8 @@ export default function MapScreen(p: Props) {
   const { gs } = p
   const [tab, setTab] = useState<Tab>('eyalet')
   const [selProv, setSelProv] = useState<string | null>(gs.factions.player.armyLocation ?? null)
+  const [showDesigner, setShowDesigner] = useState(false)
+  const banner = gs.playerBanner ?? DEFAULT_BANNER
   const player = gs.factions.player
   const prov = selProv ? gs.provinces[selProv] : null
   const armyHere = prov && player.armyLocation === prov.id
@@ -70,10 +74,12 @@ export default function MapScreen(p: Props) {
     <div className="h-full relative bg-slate-950 text-white flex flex-col overflow-hidden">
       {/* Üst kaynak çubuğu */}
       <div className="bg-slate-900/95 border-b border-slate-700 px-2 py-1.5 flex items-center justify-between gap-1 flex-shrink-0 flex-wrap">
-        <div className="font-bold text-xs flex items-center gap-1.5">
-          <img src={BANNER.player} className="w-5 h-5 object-contain" alt="" />
+        <button onClick={() => setShowDesigner(true)} title="Sancağı düzenle"
+          className="font-bold text-xs flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+          <BannerSVG d={banner} className="w-7 h-5 drop-shadow" />
           <span className="hidden sm:inline">{player.name}</span>
-        </div>
+          <span className="text-[9px] text-amber-400/80">✏️</span>
+        </button>
         <div className="flex gap-2 flex-wrap items-center">
           {res('💰', player.gold)}
           {res('🌾', player.food, player.food < 5)}
@@ -128,13 +134,23 @@ export default function MapScreen(p: Props) {
               return (
                 <g key={pr.id} onClick={() => { setSelProv(pr.id); setTab('eyalet') }} className="cursor-pointer">
                   {selected && <circle cx={pr.x} cy={py} r="5.5" fill="none" stroke="#fbbf24" strokeWidth="0.5" strokeDasharray="1,0.8" />}
-                  <image href={BANNER[pr.owner] ?? BANNER.asi} x={pr.x - 2.2} y={py - 3.4} width="4.4" height="4.4" />
-                  {occupiedByUs && <image href={BANNER.player} x={pr.x + 1.8} y={py - 5.4} width="2.6" height="2.6" opacity="0.95" />}
+                  {pr.owner === 'player' ? (
+                    <g transform={`translate(${pr.x - 2.2},${py - 3.4})`}>
+                      <rect width="4.4" height="3.2" rx="0.3" fill={banner.field} stroke="rgba(0,0,0,0.6)" strokeWidth="0.15" />
+                      {banner.pattern === 'yatay' && <rect y="1.25" width="4.4" height="0.7" fill={banner.patternColor} />}
+                      {banner.pattern === 'dikey' && <rect x="1.85" width="0.7" height="3.2" fill={banner.patternColor} />}
+                      {banner.pattern === 'bordur' && <rect x="0.35" y="0.35" width="3.7" height="2.5" fill="none" stroke={banner.patternColor} strokeWidth="0.4" />}
+                      <text x="2.2" y="2.5" fontSize="2.4" textAnchor="middle" fill={banner.emblemColor}>{banner.emblem}</text>
+                    </g>
+                  ) : (
+                    <image href={BANNER[pr.owner] ?? BANNER.asi} x={pr.x - 2.2} y={py - 3.4} width="4.4" height="4.4" />
+                  )}
+                  {occupiedByUs && <rect x={pr.x + 1.8} y={py - 5.4} width="2.8" height="2" rx="0.2" fill={banner.field} stroke="rgba(0,0,0,0.6)" strokeWidth="0.15" opacity="0.95" />}
                   {pr.isCapital && <text x={pr.x + 3.2} y={py - 1} fontSize="2.4" textAnchor="middle">⭐</text>}
                   {pr.unrest > 70 && <text x={pr.x - 4} y={py - 2} fontSize="2.6" textAnchor="middle">🔥</text>}
                   {armyThere && (
                     <g>
-                      <circle cx={pr.x + 3.6} cy={py - 3.6} r="2" fill="#14b8a6" stroke="#0f172a" strokeWidth="0.4" />
+                      <circle cx={pr.x + 3.6} cy={py - 3.6} r="2" fill={banner.field} stroke="#0f172a" strokeWidth="0.4" />
                       <text x={pr.x + 3.6} y={py - 3} fontSize="2.4" textAnchor="middle">⚔</text>
                     </g>
                   )}
@@ -155,7 +171,9 @@ export default function MapScreen(p: Props) {
           <div className="absolute top-1.5 right-2 flex gap-2 text-[10px] text-white bg-slate-950/60 rounded-lg px-2 py-1 backdrop-blur-sm">
             {Object.values(gs.factions).filter(f => f.alive).map(f => (
               <span key={f.id} className="flex items-center gap-1">
-                <img src={BANNER[f.id] ?? BANNER.asi} className="w-3.5 h-3.5 object-contain" alt="" />{f.name}
+                {f.id === 'player'
+                  ? <BannerSVG d={banner} className="w-5 h-3.5" />
+                  : <img src={BANNER[f.id] ?? BANNER.asi} className="w-3.5 h-3.5 object-contain" alt="" />}{f.name}
               </span>
             ))}
           </div>
@@ -177,7 +195,9 @@ export default function MapScreen(p: Props) {
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <img src={BANNER[prov.owner] ?? BANNER.asi} className="w-8 h-8 object-contain" alt="" />
+                    {prov.owner === 'player'
+                      ? <BannerSVG d={banner} className="w-9 h-7 drop-shadow" />
+                      : <img src={BANNER[prov.owner] ?? BANNER.asi} className="w-8 h-8 object-contain" alt="" />}
                     <div>
                       <div className="font-bold text-sm">{prov.name} {prov.isCapital && '⭐'}</div>
                       <div className="text-[11px] text-slate-400">{gs.factions[prov.owner]?.name ?? 'İsyancılar'} · {TERRAIN_INFO[prov.terrain].icon} {TERRAIN_INFO[prov.terrain].name}</div>
@@ -437,6 +457,10 @@ export default function MapScreen(p: Props) {
           </div>
         </div>
       </div>
+
+      {showDesigner && (
+        <BannerDesigner design={banner} onChange={p.onBannerChange} onClose={() => setShowDesigner(false)} />
+      )}
     </div>
   )
 }
