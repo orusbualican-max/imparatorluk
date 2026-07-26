@@ -17,7 +17,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
   const unitsRef = useRef<BattleUnit[]>(initialUnits)
   const lastCannon = useRef(0)
   const lastClash = useRef(0)
-  const imgsRef = useRef<Record<string, HTMLImageElement | null>>({})
+  const imgsRef = useRef<Record<string, HTMLImageElement | null>>({ bg: null, piyade: null, okcu: null, suvari: null })
   const [selected, setSelected] = useState<number | null>(null)
   const [speed, setSpeed] = useState(1)
   const speedRef = useRef(1)
@@ -25,6 +25,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
 
   useEffect(() => { speedRef.current = speed }, [speed])
 
+  // Görselleri yükle
   useEffect(() => {
     const load = (key: string, src: string) => {
       const im = new Image()
@@ -36,6 +37,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
     ;(['piyade', 'okcu', 'suvari', 'topcu'] as UnitType[]).forEach(t => load(t, UNIT_IMG[t]))
   }, [])
 
+  // Oyun döngüsü
   useEffect(() => {
     let last = performance.now()
     let raf: number
@@ -44,6 +46,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       last = now
       if (!winner && dt > 0) {
         tickBattle(unitsRef.current, dt, (u) => {
+          // saldırı sesi (kısıtlı sıklık)
           const now = performance.now()
           if (u.type === 'topcu') { if (now - lastCannon.current > 700) { lastCannon.current = now; sfx('/ses/top.mp3', 0.35) } }
           else if (now - lastClash.current > 500 && Math.random() < 0.5) { lastClash.current = now; sfx('/ses/kilic.mp3', 0.2) }
@@ -75,55 +78,100 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       g.addColorStop(0, '#4a7c3a'); g.addColorStop(1, '#33592a')
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
     }
-    ctx.setLineDash([6, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke()
-    ctx.setLineDash([])
 
     for (const u of unitsRef.current) {
       if (u.dead) continue
       const x = u.x * sx, y = u.y * sy
       const st = STATS[u.type]
       const isPlayer = u.side === 'player'
-      const R = 17
+      const sideColor = isPlayer ? '#14b8a6' : '#dc2626'
 
-      if (u.id === selected && u.type === 'okcu') {
+      // menzil göstergesi (seçili okçu/topçu)
+      if (u.id === selected && st.range > 30) {
         ctx.beginPath(); ctx.arc(x, y, st.range * sx, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(20,184,166,0.08)'; ctx.fill()
-        ctx.strokeStyle = 'rgba(20,184,166,0.4)'; ctx.stroke()
+        ctx.fillStyle = 'rgba(20,184,166,0.07)'; ctx.fill()
+        ctx.strokeStyle = 'rgba(20,184,166,0.35)'; ctx.stroke()
       }
 
-      ctx.beginPath(); ctx.ellipse(x, y + R * 0.75, R * 0.9, R * 0.3, 0, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill()
+      // seçim halkası (formasyon çevresi)
+      if (u.id === selected) {
+        ctx.beginPath(); ctx.ellipse(x, y, 30 * sx, 24 * sy, 0, 0, Math.PI * 2)
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.5; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([])
+      }
 
+      // === FORMASYON: küçük asker kafilesi ===
+      const total = st.soldiers
+      const aliveN = Math.max(1, Math.ceil((u.hp / u.maxHp) * total))
+      const offs = formationOffsets(u.id, total)
       const img = imgsRef.current[u.type]
       ctx.save()
-      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.clip()
-      if (img) {
-        ctx.drawImage(img, x - R, y - R, R * 2, R * 2)
-        if (u.routing) { ctx.fillStyle = 'rgba(80,80,80,0.55)'; ctx.fillRect(x - R, y - R, R * 2, R * 2) }
-      } else {
-        ctx.fillStyle = u.routing ? '#6b7280' : isPlayer ? '#14b8a6' : '#dc2626'
-        ctx.fillRect(x - R, y - R, R * 2, R * 2)
+      if (u.routing) ctx.globalAlpha = 0.45
+      for (let i = 0; i < aliveN; i++) {
+        const ox = offs[i][0] * sx, oy = offs[i][1] * sy
+        const sxp = x + ox, syp = y + oy
+        // gölge
+        ctx.beginPath(); ctx.ellipse(sxp, syp + 6, 6, 2.5, 0, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill()
+        const S = u.type === 'topcu' ? 17 : 13
+        if (img) {
+          // her askeri daire içinde çiz (sprite arkaplanı görünmesin)
+          ctx.save()
+          ctx.beginPath(); ctx.arc(sxp, syp, S / 2, 0, Math.PI * 2); ctx.clip()
+          ctx.drawImage(img, sxp - S / 2, syp - S / 2, S, S)
+          ctx.restore()
+        } else {
+          ctx.beginPath(); ctx.arc(sxp, syp, S / 2.5, 0, Math.PI * 2)
+          ctx.fillStyle = sideColor; ctx.fill()
+        }
       }
       ctx.restore()
-      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2)
-      ctx.lineWidth = u.id === selected ? 3.5 : 2.5
-      ctx.strokeStyle = u.id === selected ? '#fbbf24' : isPlayer ? '#14b8a6' : '#dc2626'
-      ctx.stroke()
 
-      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 15, y - R - 10, 30, 4)
+      // === SANCAK ===
+      const bx = x, by = y - 34
+      ctx.strokeStyle = '#3f3f46'; ctx.lineWidth = 1.6
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + 16); ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(bx, by)
+      ctx.lineTo(bx + 14, by + 4)
+      ctx.lineTo(bx, by + 8)
+      ctx.closePath()
+      ctx.fillStyle = u.routing ? '#6b7280' : sideColor
+      ctx.fill()
+      ctx.strokeStyle = u.id === selected ? '#fbbf24' : 'rgba(0,0,0,0.6)'
+      ctx.lineWidth = 1; ctx.stroke()
+      // birlik tipi simgesi bayrağın yanında
+      ctx.font = '8px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+      ctx.fillText(st.icon, bx + 3, by + 12)
+
+      // can + moral barları (formasyonun altında)
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 16, y + 24, 32, 4)
       ctx.fillStyle = u.hp > 50 ? '#4ade80' : u.hp > 25 ? '#facc15' : '#f87171'
-      ctx.fillRect(x - 15, y - R - 10, 30 * Math.max(0, u.hp / u.maxHp), 4)
-      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 15, y - R - 5, 30, 3)
+      ctx.fillRect(x - 16, y + 24, 32 * Math.max(0, u.hp / u.maxHp), 4)
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 16, y + 29, 32, 3)
       ctx.fillStyle = '#60a5fa'
-      ctx.fillRect(x - 15, y - R - 5, 30 * Math.max(0, u.morale / 100), 3)
+      ctx.fillRect(x - 16, y + 29, 32 * Math.max(0, u.morale / 100), 3)
 
+      // hareket hedefi
       if (u.id === selected && !u.routing) {
         ctx.setLineDash([3, 4]); ctx.strokeStyle = 'rgba(251,191,36,0.7)'
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(u.tx * sx, u.ty * sy); ctx.stroke()
         ctx.setLineDash([])
       }
     }
+  }
+
+  // Birlik merkezine göre deterministik formasyon dizilimi
+  function formationOffsets(id: number, n: number): [number, number][] {
+    const arr: [number, number][] = []
+    const cols = Math.ceil(Math.sqrt(n))
+    const rows = Math.ceil(n / cols)
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(i / cols), c = i % cols
+      const jx = ((id * 37 + i * 13) % 7) - 3
+      const jy = ((id * 53 + i * 29) % 7) - 3
+      arr.push([(c - (cols - 1) / 2) * 13 + jx, (r - (rows - 1) / 2) * 13 + jy])
+    }
+    return arr
   }
 
   const toField = (e: React.PointerEvent) => {
@@ -136,7 +184,7 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
     if (winner) return
     const p = toField(e)
     const units = unitsRef.current
-    const hit = units.filter(u => !u.dead).find(u => Math.hypot(u.x - p.x, u.y - p.y) < 24)
+    const hit = units.filter(u => !u.dead).find(u => Math.hypot(u.x - p.x, u.y - p.y) < 32)
     if (hit && hit.side === 'player' && !hit.routing) { setSelected(hit.id); return }
     if (selected != null) {
       const u = units.find(u => u.id === selected)
@@ -173,11 +221,13 @@ export default function BattleScreen({ initialUnits, provinceName, enemyName, on
       </div>
 
       <div className="flex-1 flex flex-col landscape:flex-row min-h-0">
+        {/* Savaş alanı */}
         <div className="relative h-[55%] landscape:h-auto landscape:flex-1 min-w-0 flex-shrink-0">
           <canvas ref={canvasRef} width={900} height={520} onPointerDown={onTap}
             className="absolute inset-0 w-full h-full touch-none select-none cursor-crosshair object-fill" />
         </div>
 
+        {/* Sağ birlik paneli */}
         <div className="flex-1 landscape:flex-none landscape:w-[170px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l border-slate-700 flex flex-col min-h-0">
           <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-300 border-b border-slate-700">Birliklerin</div>
           <div className="flex-1 overflow-y-auto p-1.5 flex landscape:flex-col gap-1.5 min-h-0 overflow-x-auto landscape:overflow-x-hidden">
