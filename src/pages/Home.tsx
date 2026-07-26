@@ -317,7 +317,7 @@ export default function Home() {
     try { localStorage.removeItem(SAVE_KEY) } catch { /* */ }
     return (
       <div className="min-h-full bg-slate-950 text-white flex items-center justify-center p-4 relative">
-        <img src="/img/menu_bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+        <img src="/img/menu_bg2.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
         <div className="text-center max-w-sm relative">
           <div className="text-6xl mb-4">{gs.gameOver === 'win' ? '👑' : '🏳️'}</div>
           <h1 className="text-3xl font-bold mb-2">{gs.gameOver === 'win' ? 'İMPARATORLUĞUNUZ EZELİ!' : 'Taht El Değiştirdi'}</h1>
@@ -363,30 +363,47 @@ export default function Home() {
 
 function Menu({ onStart, onContinue }: { onStart: () => void; onContinue: () => void }) {
   const hasSave = (() => { try { return !!localStorage.getItem('imparatorluk_save') } catch { return false } })()
+  const banners = ['/img/banner_player.png', '/img/banner_kuzey.png', '/img/banner_han.png', '/img/banner_bati.png']
   return (
-    <div className="min-h-full bg-slate-950 text-white flex items-center justify-center p-4 relative overflow-y-auto">
-      <img src="/img/menu_bg.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
-      <div className="fixed inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/30" />
-      <div className="text-center max-w-md relative py-8">
-        <img src="/img/banner_player.png" alt="" className="w-24 h-24 object-contain mx-auto mb-2 drop-shadow-2xl" />
-        <h1 className="text-4xl font-black mb-1 tracking-wide">İMPARATORLUK</h1>
-        <p className="text-teal-300 text-sm mb-6">Sıra Tabanlı Devlet Yönetimi & Taktiksel Muharebe</p>
-        <div className="text-left bg-slate-900/70 border border-slate-700 rounded-2xl p-4 text-sm text-slate-300 space-y-2 mb-6 backdrop-blur-sm">
-          <p>🏰 <b>Ülkeni yönet:</b> vergiler, kanunlar, binalar, ilgi grupları ve isyan riski.</p>
-          <p>🤝 <b>Diplomasi kur:</b> ticaret, savaş ilanı, savaş skoru ve barış masasında toprak talebi.</p>
-          <p>⚔️ <b>Savaş meydanında komuta et:</b> piyade, okçu, süvari ve topçu birliklerini gerçek zamanlı yönlendir; arazi savunmacıya avantaj verir.</p>
-          <p>👑 <b>Hedef:</b> üç devleti de ortadan kaldır, diyarı birleştir!</p>
-        </div>
-        {hasSave && (
-          <button onClick={onContinue}
-            className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-lg font-black active:scale-[0.98] transition shadow-lg mb-3">
-            📜 Kaldığın Yerden Devam Et
+    <div className="min-h-full bg-slate-950 text-white relative overflow-y-auto">
+      <img src="/img/menu_bg2.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
+      <div className="fixed inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/25" />
+      <div className="relative min-h-full flex flex-col items-center justify-center p-4 py-10">
+        <div className="text-center max-w-lg w-full">
+          <div className="flex justify-center gap-4 mb-4">
+            {banners.map((b, i) => (
+              <img key={i} src={b} alt="" className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-2xl hover:scale-110 transition-transform" />
+            ))}
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-black mb-1 tracking-widest drop-shadow-lg">İMPARATORLUK</h1>
+          <p className="text-amber-300/90 text-xs sm:text-sm mb-8 tracking-wide font-semibold">DÖRT TAHT · TEK HÜKÜMDAR · SIRA TABANLI STRATEJİ & TAKTİK MUHAREBE</p>
+
+          <div className="grid grid-cols-2 gap-2 text-left text-[11px] sm:text-xs mb-8">
+            {[
+              ['🏛', 'Devlet Yönetimi', 'Kanunlar, ilgi grupları, binalar, isyan riski'],
+              ['🤝', 'Diplomasi', 'İttifaklar, ticaret, savaş skoru, barış masası'],
+              ['⚔️', 'Taktik Savaş', 'Sancaklı birlik kafileleri, moral, arazi, topçu'],
+              ['👑', 'Fetih', 'Üç devleti ortadan kaldır, diyarı birleştir'],
+            ].map(([icon, title, desc]) => (
+              <div key={title} className="bg-slate-900/70 border border-slate-700/80 rounded-xl p-2.5 backdrop-blur-sm">
+                <div className="font-bold text-slate-100">{icon} {title}</div>
+                <div className="text-slate-400 mt-0.5">{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {hasSave && (
+            <button onClick={onContinue}
+              className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-amber-900/40 mb-3">
+              📜 Kaldığın Yerden Devam Et
+            </button>
+          )}
+          <button onClick={onStart}
+            className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50">
+            ⚔️ {hasSave ? 'Yeni Sefer' : 'Tahta Otur'}
           </button>
-        )}
-        <button onClick={onStart}
-          className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50">
-          ⚔️ {hasSave ? 'Yeni Oyun' : 'Tahta Otur'}
-        </button>
+          <div className="text-[10px] text-slate-500 mt-4">v3.0 · Kayıt otomatik tutulur</div>
+        </div>
       </div>
     </div>
   )
