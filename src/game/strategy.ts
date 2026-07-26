@@ -175,9 +175,9 @@ export function armyLevel(xp: number): number {
   return Math.min(5, lvl)
 }
 
-export const CHOICE_EVENTS: { id: string; title: string; text: string; options: { label: string; desc: string; apply: (s: GameState) => void }[] }[] = [
+export const CHOICE_EVENTS: { id: string; title: string; text: string; img?: string; options: { label: string; desc: string; apply: (s: GameState) => void }[] }[] = [
   {
-    id: 'kultur_catismasi', title: '⚔️ Yeni Fetihlerde Kültür Çatışması',
+    id: 'kultur_catismasi', title: '⚔️ Yeni Fetihlerde Kültür Çatışması', img: '/img/ev_kultur.jpg',
     text: 'Yeni eyaletlerdeki halk geleneklerimizi reddediyor. Vezirler ikiye bölünmüş durumda.',
     options: [
       { label: 'Hoşgörü göster', desc: 'İsyan riski azalır, Halk memnun olur (🏛10)', apply: s => { if (s.mana.idari >= 10) { s.mana.idari -= 10; Object.values(s.provinces).forEach(p => { if (p.owner === 'player') p.unrest = Math.max(0, p.unrest - 15) }); s.groups.halk = clamp(s.groups.halk + 10, 0, 100) } } },
@@ -185,7 +185,7 @@ export const CHOICE_EVENTS: { id: string; title: string; text: string; options: 
     ],
   },
   {
-    id: 'yabanci_tuccar', title: '💼 Yabancı Tüccar Teklifi',
+    id: 'yabanci_tuccar', title: '💼 Yabancı Tüccar Teklifi', img: '/img/ev_tuccar.jpg',
     text: 'Uzun yol tüccarı gizli güzergah haritasını satmayı teklif ediyor.',
     options: [
       { label: 'Haritayı satın al (💰80)', desc: 'Tüccarlar sevinir, +10 🕊', apply: s => { if (s.factions.player.gold >= 80) { s.factions.player.gold -= 80; s.mana.diplomatik = clamp(s.mana.diplomatik + 10, 0, 150); s.groups.tuccarlar = clamp(s.groups.tuccarlar + 10, 0, 100) } } },
@@ -193,7 +193,7 @@ export const CHOICE_EVENTS: { id: string; title: string; text: string; options: 
     ],
   },
   {
-    id: 'ordu_isyani', title: '🎖 Subayların Talebi',
+    id: 'ordu_isyani', title: '🎖 Subayların Talebi', img: '/img/ev_ordu.jpg',
     text: 'Subaylar maaş zammı istiyor, aksi halde disiplin sarsılacak.',
     options: [
       { label: 'Zam ver (💰60)', desc: 'Ordu +15, askeri nüfuz +5', apply: s => { if (s.factions.player.gold >= 60) { s.factions.player.gold -= 60; s.groups.ordu = clamp(s.groups.ordu + 15, 0, 100); s.mana.askeri = clamp(s.mana.askeri + 5, 0, 150) } } },
@@ -201,7 +201,7 @@ export const CHOICE_EVENTS: { id: string; title: string; text: string; options: 
     ],
   },
   {
-    id: 'soylu_komplo', title: '🤴 Soylu Komplosu',
+    id: 'soylu_komplo', title: '🤴 Soylu Komplosu', img: '/img/ev_komplo.jpg',
     text: 'Bir soylunun sarayda entrika çevirdiği ortaya çıktı.',
     options: [
       { label: 'Affet', desc: 'Soylular +15, istikrar -5', apply: s => { s.groups.soylular = clamp(s.groups.soylular + 15, 0, 100); s.stability = clamp(s.stability - 5, 0, 100) } },
@@ -209,11 +209,67 @@ export const CHOICE_EVENTS: { id: string; title: string; text: string; options: 
     ],
   },
   {
-    id: 'koylu_ayaklanmasi', title: '👨‍🌾 Köylü Ayaklanması',
+    id: 'koylu_ayaklanmasi', title: '👨‍🌾 Köylü Ayaklanması', img: '/img/ev_koylu.jpg',
     text: 'Ağır vergilerden bıkan köylüler sokaklara döküldü.',
     options: [
       { label: 'Vergi indirimi sözü ver', desc: 'Halk +15, hazine -50 altın', apply: s => { s.groups.halk = clamp(s.groups.halk + 15, 0, 100); s.factions.player.gold = Math.max(0, s.factions.player.gold - 50) } },
       { label: 'Orduyu gönder', desc: 'Halk -15, istikrar +5, askeri nüfuz +5', apply: s => { s.groups.halk = clamp(s.groups.halk - 15, 0, 100); s.stability = clamp(s.stability + 5, 0, 100); s.mana.askeri = clamp(s.mana.askeri + 5, 0, 150) } },
+    ],
+  },
+  {
+    id: 'veba_salgini', title: '☠️ Veba Salgını!', img: '/img/ev_veba.jpg',
+    text: 'Liman şehrinde veba görüldü. Kervanlar durma noktasında, halk panik içinde.',
+    options: [
+      { label: 'Karantina ilan et (💰70)', desc: 'Memnuniyet +8, salgın kontrol altında', apply: s => { if (s.factions.player.gold >= 70) { s.factions.player.gold -= 70; s.approval = clamp(s.approval + 8, 0, 100); s.groups.halk = clamp(s.groups.halk + 8, 0, 100) } } },
+      { label: 'Görmezden gel', desc: 'İstikrar -10, Halk -12, tüm eyaletlerde isyan +10', apply: s => { s.stability = clamp(s.stability - 10, 0, 100); s.groups.halk = clamp(s.groups.halk - 12, 0, 100); Object.values(s.provinces).forEach(p => { if (p.owner === 'player') p.unrest = clamp(p.unrest + 10, 0, 100) }) } },
+    ],
+  },
+  {
+    id: 'maden_kesfi', title: '⛏️ Zengin Maden Damarı', img: '/img/ev_maden.jpg',
+    text: 'Dağ eteklerinde zengin bir maden damarı bulundu. Soylular işletme hakkını istiyor.',
+    options: [
+      { label: 'Devlet işletsin', desc: '+150 altın, Soylular -8', apply: s => { s.factions.player.gold += 150; s.groups.soylular = clamp(s.groups.soylular - 8, 0, 100) } },
+      { label: 'Soylulara ver', desc: 'Soylular +12, +60 altın', apply: s => { s.groups.soylular = clamp(s.groups.soylular + 12, 0, 100); s.factions.player.gold += 60 } },
+    ],
+  },
+  {
+    id: 'kitlik_yili', title: '🌾 Kıtlık Yılı', img: '/img/ev_kitlik.jpg',
+    text: 'Kurak geçen yazın ardından ambarlar boşaldı. Halk ekmek istiyor.',
+    options: [
+      { label: 'Ambarları aç (🌾10)', desc: 'Halk +12, memnuniyet +6', apply: s => { if (s.factions.player.food >= 10) { s.factions.player.food -= 10; s.groups.halk = clamp(s.groups.halk + 12, 0, 100); s.approval = clamp(s.approval + 6, 0, 100) } } },
+      { label: 'Yurtdışından buğday al (💰90)', desc: 'Erzak +12, Tüccarlar +8', apply: s => { if (s.factions.player.gold >= 90) { s.factions.player.gold -= 90; s.factions.player.food += 12; s.groups.tuccarlar = clamp(s.groups.tuccarlar + 8, 0, 100) } } },
+    ],
+  },
+  {
+    id: 'veliaht_dogumu', title: '👑 Veliaht Doğdu!', img: '/img/ev_veliaht.jpg',
+    text: 'Sarayda müjde: bir veliaht dünyaya geldi! Halk sokaklarda kutlama yapıyor.',
+    options: [
+      { label: 'Şölen düzenle (💰50)', desc: 'İstikrar +8, tüm gruplar +6', apply: s => { if (s.factions.player.gold >= 50) { s.factions.player.gold -= 50; s.stability = clamp(s.stability + 8, 0, 100); (Object.keys(s.groups) as (keyof typeof s.groups)[]).forEach(k => { s.groups[k] = clamp(s.groups[k] + 6, 0, 100) }) } } },
+      { label: 'Mütevazı kutlama', desc: 'Memnuniyet +5', apply: s => { s.approval = clamp(s.approval + 5, 0, 100) } },
+    ],
+  },
+  {
+    id: 'korsan_baskini', title: '🏴‍☠️ Korsan Baskını', img: '/img/ev_korsan.jpg',
+    text: 'Korsanlar limanlarımızı yağmaladı! Tüccarlar donanma istiyor.',
+    options: [
+      { label: 'Donanma gönder (💰80)', desc: 'Tüccarlar +15, +10 🕊', apply: s => { if (s.factions.player.gold >= 80) { s.factions.player.gold -= 80; s.groups.tuccarlar = clamp(s.groups.tuccarlar + 15, 0, 100); s.mana.diplomatik = clamp(s.mana.diplomatik + 10, 0, 150) } } },
+      { label: 'Haraç öde (💰40)', desc: 'Tüccarlar -10, istikrar -4', apply: s => { s.factions.player.gold = Math.max(0, s.factions.player.gold - 40); s.groups.tuccarlar = clamp(s.groups.tuccarlar - 10, 0, 100); s.stability = clamp(s.stability - 4, 0, 100) } },
+    ],
+  },
+  {
+    id: 'gezgin_bilgin', title: '📚 Gezgin Bilgin', img: '/img/ev_bilgin.jpg',
+    text: 'Ünlü bir bilgin sarayınıza geldi ve çalışmalarını sizin himayenizde sürdürmek istiyor.',
+    options: [
+      { label: 'Himayene al (💰60)', desc: 'Her nüfuz türünden +15', apply: s => { if (s.factions.player.gold >= 60) { s.factions.player.gold -= 60; s.mana.idari = clamp(s.mana.idari + 15, 0, 150); s.mana.diplomatik = clamp(s.mana.diplomatik + 15, 0, 150); s.mana.askeri = clamp(s.mana.askeri + 15, 0, 150) } } },
+      { label: 'Kütüphanesini satın al (💰30)', desc: '+12 🏛 idari nüfuz', apply: s => { if (s.factions.player.gold >= 30) { s.factions.player.gold -= 30; s.mana.idari = clamp(s.mana.idari + 12, 0, 150) } } },
+    ],
+  },
+  {
+    id: 'dahi_mimar', title: '🏛️ Dahi Mimar', img: '/img/ev_mimar.jpg',
+    text: 'Genç bir mimar, eşi görülmemiş bir kubbe tasarısıyla kapınızı çaldı.',
+    options: [
+      { label: 'Ona bina yaptır (💰100)', desc: 'Rastgele eyalette bedava bina, Soylular +5', apply: s => { if (s.factions.player.gold >= 100) { s.factions.player.gold -= 100; const empty = Object.values(s.provinces).filter(p => p.owner === 'player' && !p.building); if (empty.length) empty[0].building = 'tapinak'; s.groups.soylular = clamp(s.groups.soylular + 5, 0, 100) } } },
+      { label: 'Planları alıp kov', desc: '+8 🏛, Soylular -5', apply: s => { s.mana.idari = clamp(s.mana.idari + 8, 0, 150); s.groups.soylular = clamp(s.groups.soylular - 5, 0, 100) } },
     ],
   },
 ]
@@ -342,7 +398,7 @@ export function endTurn(s: GameState): GameState {
   // === SEÇİMLİ OLAY ===
   if (!ns.pendingEvent && Math.random() < 0.3) {
     const ev = CHOICE_EVENTS[rand(CHOICE_EVENTS.length)]
-    ns.pendingEvent = { id: ev.id, title: ev.title, text: ev.text, options: ev.options.map(o => ({ label: o.label, desc: o.desc })) }
+    ns.pendingEvent = { id: ev.id, title: ev.title, text: ev.text, img: ev.img, options: ev.options.map(o => ({ label: o.label, desc: o.desc })) }
   }
 
   // === AI ===
