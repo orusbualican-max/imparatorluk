@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Delaunay } from 'd3-delaunay'
 import { UNIT_INFO, BUILDING_INFO, LAW_INFO, GROUP_INFO, TECH_INFO, TERRAIN_INFO } from '../game/types'
 import type { Building, Faction, GameState, Law, ManaType, UnitType } from '../game/types'
 import { ARMY_LEVELS, TAX_APPROVAL, armyLevel, armyPower, armySize, coreCost, provinceIncome } from '../game/strategy'
@@ -46,6 +47,19 @@ export default function MapScreen(p: Props) {
   const ours = prov && (prov.owner === 'player' || prov.occupiedBy === 'player')
   const isAdj = prov && player.armyLocation ? gs.provinces[player.armyLocation].adj.includes(prov.id) : false
 
+  const provList = Object.values(gs.provinces)
+  const cells = useMemo(() => {
+    const pts = provList.map(pr => [pr.x, Y(pr.y)] as [number, number])
+    return Delaunay.from(pts).voronoi([0, 0, 100, 62])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const cellPath = (i: number) => {
+    const poly = cells.cellPolygon(i)
+    if (!poly) return ''
+    return 'M' + poly.map(pt => `${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join('L') + 'Z'
+  }
+
   const res = (icon: string, v: number | string, warn = false) => (
     <div className={`flex items-center gap-0.5 text-[11px] sm:text-xs font-semibold ${warn ? 'text-red-400' : ''}`}>
       <span>{icon}</span><span>{v}</span>
@@ -54,6 +68,7 @@ export default function MapScreen(p: Props) {
 
   return (
     <div className="h-full relative bg-slate-950 text-white flex flex-col overflow-hidden">
+      {/* Üst kaynak çubuğu */}
       <div className="bg-slate-900/95 border-b border-slate-700 px-2 py-1.5 flex items-center justify-between gap-1 flex-shrink-0 flex-wrap">
         <div className="font-bold text-xs flex items-center gap-1.5">
           <img src={BANNER.player} className="w-5 h-5 object-contain" alt="" />
@@ -72,18 +87,25 @@ export default function MapScreen(p: Props) {
       </div>
 
       <div className="flex-1 flex flex-col landscape:flex-row min-h-0">
+        {/* Harita */}
         <div className="relative h-[42%] landscape:h-auto landscape:flex-1 min-w-0 flex-shrink-0">
           <img src="/img/map_bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-slate-950/20" />
           <svg viewBox="0 0 100 62" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-            {Object.values(gs.provinces).flatMap(pr =>
-              pr.adj.filter(a => a > pr.id).map(a => (
-                <line key={pr.id + a} x1={pr.x} y1={Y(pr.y)} x2={gs.provinces[a].x} y2={Y(gs.provinces[a].y)}
-                  stroke="rgba(0,0,0,0.45)" strokeWidth="0.6" strokeDasharray="2,1.2" />
-              ))
-            )}
-            {Object.values(gs.provinces).map(pr => {
+            {provList.map((pr, i) => {
               const f = gs.factions[pr.owner]
+              const selected = pr.id === selProv
+              return (
+                <path key={'c' + pr.id} d={cellPath(i)}
+                  fill={f?.color ?? '#666'} fillOpacity={selected ? 0.5 : 0.32}
+                  stroke={selected ? '#fbbf24' : (f?.color ?? '#666')}
+                  strokeWidth={selected ? 1 : 0.5}
+                  strokeDasharray={pr.owner === 'player' && !pr.core ? '1.5,1' : undefined}
+                  onClick={() => { setSelProv(pr.id); setTab('eyalet') }}
+                  className="cursor-pointer" />
+              )
+            })}
+            {provList.map((pr) => {
               const selected = pr.id === selProv
               const armyThere = player.armyLocation === pr.id
               const enemyArmy = Object.values(gs.factions).find(ef => !ef.isPlayer && ef.alive && ef.armyLocation === pr.id && armySize(ef.army) > 0)
@@ -91,27 +113,27 @@ export default function MapScreen(p: Props) {
               const occupiedByUs = pr.occupiedBy === 'player'
               return (
                 <g key={pr.id} onClick={() => { setSelProv(pr.id); setTab('eyalet') }} className="cursor-pointer">
-                  <circle cx={pr.x} cy={py} r="6.5" fill={f?.color ?? '#666'} opacity="0.18" />
-                  <circle cx={pr.x} cy={py} r="3" fill={f?.color ?? '#666'}
-                    stroke={selected ? '#fbbf24' : 'rgba(0,0,0,0.7)'} strokeWidth={selected ? 0.9 : 0.4}
-                    strokeDasharray={pr.owner === 'player' && !pr.core ? '1,0.7' : undefined} />
-                  <image href={BANNER[pr.owner] ?? BANNER.asi} x={pr.x - 2} y={py - 2.6} width="4" height="4" />
-                  {occupiedByUs && <image href={BANNER.player} x={pr.x + 1.2} y={py - 4.6} width="2.6" height="2.6" opacity="0.9" />}
-                  {pr.unrest > 70 && <text x={pr.x - 4} y={py - 3} fontSize="2.6" textAnchor="middle">🔥</text>}
+                  {selected && <circle cx={pr.x} cy={py} r="5.5" fill="none" stroke="#fbbf24" strokeWidth="0.5" strokeDasharray="1,0.8" />}
+                  <image href={BANNER[pr.owner] ?? BANNER.asi} x={pr.x - 2.2} y={py - 3.4} width="4.4" height="4.4" />
+                  {occupiedByUs && <image href={BANNER.player} x={pr.x + 1.8} y={py - 5.4} width="2.6" height="2.6" opacity="0.95" />}
+                  {pr.isCapital && <text x={pr.x + 3.2} y={py - 1} fontSize="2.4" textAnchor="middle">⭐</text>}
+                  {pr.unrest > 70 && <text x={pr.x - 4} y={py - 2} fontSize="2.6" textAnchor="middle">🔥</text>}
                   {armyThere && (
                     <g>
-                      <circle cx={pr.x + 3.4} cy={py - 3.4} r="2" fill="#14b8a6" stroke="#0f172a" strokeWidth="0.4" />
-                      <text x={pr.x + 3.4} y={py - 2.8} fontSize="2.4" textAnchor="middle">⚔</text>
+                      <circle cx={pr.x + 3.6} cy={py - 3.6} r="2" fill="#14b8a6" stroke="#0f172a" strokeWidth="0.4" />
+                      <text x={pr.x + 3.6} y={py - 3} fontSize="2.4" textAnchor="middle">⚔</text>
                     </g>
                   )}
                   {enemyArmy && (
                     <g>
-                      <circle cx={pr.x - 3.4} cy={py - 3.4} r="2" fill="#dc2626" stroke="#0f172a" strokeWidth="0.4" />
-                      <text x={pr.x - 3.4} y={py - 2.8} fontSize="2.2" textAnchor="middle">⚔</text>
+                      <circle cx={pr.x - 3.6} cy={py - 3.6} r="2" fill="#dc2626" stroke="#0f172a" strokeWidth="0.4" />
+                      <text x={pr.x - 3.6} y={py - 3} fontSize="2.2" textAnchor="middle">⚔</text>
                     </g>
                   )}
-                  <text x={pr.x} y={py + 6.5} fontSize="2.5" fill="#fff" textAnchor="middle" fontWeight="bold"
-                    stroke="rgba(0,0,0,0.8)" strokeWidth="0.35" paintOrder="stroke">{pr.name}</text>
+                  <text x={pr.x} y={py + 5.5} fontSize="2.4" fill="#fff" textAnchor="middle" fontWeight="bold"
+                    stroke="rgba(0,0,0,0.85)" strokeWidth="0.4" paintOrder="stroke">{pr.name}</text>
+                  <text x={pr.x} y={py + 8.3} fontSize="1.9" fill="rgba(255,255,255,0.75)" textAnchor="middle"
+                    stroke="rgba(0,0,0,0.7)" strokeWidth="0.25" paintOrder="stroke">{TERRAIN_INFO[pr.terrain].icon}</text>
                 </g>
               )
             })}
@@ -125,6 +147,7 @@ export default function MapScreen(p: Props) {
           </div>
         </div>
 
+        {/* Panel */}
         <div className="flex-1 landscape:flex-none landscape:w-[330px] xl:landscape:w-[370px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l border-slate-700 flex flex-col min-h-0">
           <div className="flex border-b border-slate-700 flex-shrink-0">
             {([['eyalet', '🏰'], ['diplomasi', '🤝'], ['siyaset', '🏛'], ['gelisim', '💡'], ['gunluk', '📜']] as [Tab, string][]).map(([t, icon]) => (
@@ -192,6 +215,7 @@ export default function MapScreen(p: Props) {
                   <div>Bina: {prov.building ? `${BUILDING_INFO[prov.building].icon} ${BUILDING_INFO[prov.building].name}` : '—'}</div>
                 </div>
 
+                {/* Bina inşası */}
                 {prov.owner === 'player' && !prov.occupiedBy && prov.core && !prov.building && (
                   <div>
                     <div className="text-[11px] font-semibold text-slate-300 mb-1">Bina İnşa Et {gs.techs.idari >= 2 && <span className="text-teal-400">(-%25)</span>}</div>
