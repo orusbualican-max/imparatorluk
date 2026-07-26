@@ -1,4 +1,4 @@
-import type { ArmyComp, Faction, GameState, Province, TaxLevel, Terrain } from './types'
+import type { ArmyComp, BannerDesign, Faction, GameState, Province, TaxLevel, Terrain } from './types'
 import { DEFAULT_BANNER } from './types'
 
 const P = (id: string, name: string, x: number, y: number, owner: string, gold: number, food: number, terrain: Terrain, mp: number, adj: string[], garrison: ArmyComp, isCapital = false): Province =>
@@ -7,7 +7,9 @@ const P = (id: string, name: string, x: number, y: number, owner: string, gold: 
 export const TAX_MULT: Record<TaxLevel, number> = { dusuk: 0.6, orta: 1.0, yuksek: 1.5 }
 export const TAX_APPROVAL: Record<TaxLevel, number> = { dusuk: 3, orta: 0, yuksek: -6 }
 
-export function newGame(): GameState {
+export function newGame(stateName?: string, banner?: BannerDesign): GameState {
+  const bd = banner ? { ...banner } : { ...DEFAULT_BANNER }
+  const playerName = stateName?.trim() || 'Aksaray Devleti'
   const provinces: Record<string, Province> = {}
   const add = (p: Province) => { provinces[p.id] = p }
   // Konumlar harita arka planına göre: kuzey dağlık, batı ormanlık, doğu çöl, güney kıyı
@@ -26,20 +28,20 @@ export function newGame(): GameState {
   add(P('senato', 'Senato Şehri', 13, 32, 'bati', 85, 4, 'orman', 5, ['bati_limani'], { piyade: 2, okcu: 1, suvari: 0 }, true))
 
   const factions: Record<string, Faction> = {
-    player: { id: 'player', name: 'Aksaray Devleti', color: '#14b8a6', isPlayer: true, gold: 300, food: 20, army: { piyade: 3, okcu: 2, suvari: 1 }, armyLocation: 'merkez', alive: true, relation: 0, state: 'baris', tradeAgreement: false },
+    player: { id: 'player', name: playerName, color: bd.field, isPlayer: true, gold: 300, food: 20, army: { piyade: 3, okcu: 2, suvari: 1 }, armyLocation: 'merkez', alive: true, relation: 0, state: 'baris', tradeAgreement: false },
     kuzey: { id: 'kuzey', name: 'Kuzey Krallığı', color: '#ef4444', isPlayer: false, gold: 250, food: 15, army: { piyade: 2, okcu: 1, suvari: 1 }, armyLocation: 'kuzey_kalesi', alive: true, relation: -10, state: 'baris', tradeAgreement: false },
     han: { id: 'han', name: 'Doğu Hanlığı', color: '#a855f7', isPlayer: false, gold: 250, food: 15, army: { piyade: 1, okcu: 2, suvari: 2 }, armyLocation: 'han_merkez', alive: true, relation: 0, state: 'baris', tradeAgreement: false },
     bati: { id: 'bati', name: 'Batı Cumhuriyeti', color: '#22c55e', isPlayer: false, gold: 250, food: 15, army: { piyade: 3, okcu: 1, suvari: 0 }, armyLocation: 'senato', alive: true, relation: 5, state: 'baris', tradeAgreement: false },
     asi: { id: 'asi', name: 'İsyancılar', color: '#6b7280', isPlayer: false, gold: 0, food: 0, alive: true, relation: -100, state: 'savas', tradeAgreement: false },
   }
   return {
-    turn: 1, provinces, factions, playerBanner: { ...DEFAULT_BANNER }, tax: 'orta', edict: 'none', approval: 60, stability: 70,
+    turn: 1, provinces, factions, playerBanner: bd, tax: 'orta', edict: 'none', approval: 60, stability: 70,
     mana: { idari: 30, diplomatik: 30, askeri: 30 },
     techs: { idari: 0, diplomatik: 0, askeri: 0 },
     laws: { serf_azadi: false, zorunlu_askerlik: false, serbest_ticaret: false },
     groups: { halk: 60, soylular: 60, ordu: 60, tuccarlar: 60 },
     warScore: {}, armyXP: 0, coalitionFormed: false,
-    log: ['Devlet kuruldu. Taht sizindir, hükümdarım!'],
+    log: [`${playerName} kuruldu. Taht sizindir, hükümdarım!`],
   }
 }
 
