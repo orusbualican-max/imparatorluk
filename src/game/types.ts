@@ -51,6 +51,7 @@ export interface GameState {
   turn: number
   provinces: Record<string, Province>
   factions: Record<string, Faction>
+  playerBanner: BannerDesign // CK3 tarzı özelleştirilebilir sancak
   tax: TaxLevel
   edict: Edict
   approval: number
@@ -74,6 +75,25 @@ export interface ChoiceEvent {
   text: string
   img?: string
   options: { label: string; desc: string }[]
+}
+
+// === CK3 tarzı sancak tasarımı ===
+export type BannerPattern = 'duz' | 'yatay' | 'dikey' | 'capraz' | 'bordur'
+
+export interface BannerDesign {
+  field: string        // zemin rengi (= harita rengi)
+  pattern: BannerPattern
+  patternColor: string // şerit/bordür rengi
+  emblem: string       // amblem (unicode sembol)
+  emblemColor: string
+}
+
+export const DEFAULT_BANNER: BannerDesign = {
+  field: '#14b8a6',
+  pattern: 'bordur',
+  patternColor: '#0f766e',
+  emblem: '☾',
+  emblemColor: '#fef3c7',
 }
 
 export const UNIT_INFO: Record<UnitType, { name: string; cost: number; food: number; manpower: number; desc: string }> = {
