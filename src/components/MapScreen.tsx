@@ -90,19 +90,33 @@ export default function MapScreen(p: Props) {
         {/* Harita */}
         <div className="relative h-[42%] landscape:h-auto landscape:flex-1 min-w-0 flex-shrink-0">
           <img src="/img/map_bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-slate-950/20" />
           <svg viewBox="0 0 100 62" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Toprak dolgusu: arka plan görünsün diye hafif */}
             {provList.map((pr, i) => {
               const f = gs.factions[pr.owner]
               const selected = pr.id === selProv
               return (
                 <path key={'c' + pr.id} d={cellPath(i)}
-                  fill={f?.color ?? '#666'} fillOpacity={selected ? 0.5 : 0.32}
-                  stroke={selected ? '#fbbf24' : (f?.color ?? '#666')}
-                  strokeWidth={selected ? 1 : 0.5}
-                  strokeDasharray={pr.owner === 'player' && !pr.core ? '1.5,1' : undefined}
+                  fill={f?.color ?? '#666'} fillOpacity={selected ? 0.34 : 0.16}
                   onClick={() => { setSelProv(pr.id); setTab('eyalet') }}
                   className="cursor-pointer" />
+              )
+            })}
+            {/* Sınırlar: kalın koyu dış hat + ince hizip rengi iç hat (parşömen stili) */}
+            {provList.map((pr, i) => {
+              const f = gs.factions[pr.owner]
+              const selected = pr.id === selProv
+              return (
+                <g key={'b' + pr.id} pointerEvents="none">
+                  <path d={cellPath(i)} fill="none"
+                    stroke={selected ? '#fbbf24' : 'rgba(46,30,14,0.85)'}
+                    strokeWidth={selected ? 1.1 : 0.55} strokeLinejoin="round" />
+                  <path d={cellPath(i)} fill="none"
+                    stroke={selected ? '#fde68a' : (f?.color ?? '#666')}
+                    strokeOpacity={selected ? 0.9 : 0.55}
+                    strokeWidth={0.16} strokeLinejoin="round"
+                    strokeDasharray={pr.owner === 'player' && !pr.core ? '1.2,0.8' : undefined} />
+                </g>
               )
             })}
             {provList.map((pr) => {
