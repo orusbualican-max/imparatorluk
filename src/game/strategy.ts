@@ -1,4 +1,5 @@
 import type { ArmyComp, Faction, GameState, Province, TaxLevel, Terrain } from './types'
+import { DEFAULT_BANNER } from './types'
 
 const P = (id: string, name: string, x: number, y: number, owner: string, gold: number, food: number, terrain: Terrain, mp: number, adj: string[], garrison: ArmyComp, isCapital = false): Province =>
   ({ id, name, x, y, owner, core: true, unrest: 0, terrain, manpower: mp, maxManpower: mp, gold, food, adj, garrison, isCapital })
@@ -32,7 +33,7 @@ export function newGame(): GameState {
     asi: { id: 'asi', name: 'İsyancılar', color: '#6b7280', isPlayer: false, gold: 0, food: 0, alive: true, relation: -100, state: 'savas', tradeAgreement: false },
   }
   return {
-    turn: 1, provinces, factions, tax: 'orta', edict: 'none', approval: 60, stability: 70,
+    turn: 1, provinces, factions, playerBanner: { ...DEFAULT_BANNER }, tax: 'orta', edict: 'none', approval: 60, stability: 70,
     mana: { idari: 30, diplomatik: 30, askeri: 30 },
     techs: { idari: 0, diplomatik: 0, askeri: 0 },
     laws: { serf_azadi: false, zorunlu_askerlik: false, serbest_ticaret: false },
