@@ -17,11 +17,11 @@ export interface BattleUnit {
   moraleResist: number
 }
 
-export const STATS: Record<UnitType, { speed: number; range: number; dmg: number; armor: number; label: string; icon: string }> = {
-  piyade: { speed: 22, range: 16, dmg: 7, armor: 3, label: 'Piyade', icon: '🛡' },
-  okcu: { speed: 20, range: 120, dmg: 5, armor: 0, label: 'Okçu', icon: '🏹' },
-  suvari: { speed: 44, range: 16, dmg: 10, armor: 1, label: 'Süvari', icon: '🐎' },
-  topcu: { speed: 10, range: 150, dmg: 16, armor: 0, label: 'Topçu', icon: '💣' },
+export const STATS: Record<UnitType, { speed: number; range: number; dmg: number; armor: number; label: string; icon: string; soldiers: number }> = {
+  piyade: { speed: 22, range: 16, dmg: 7, armor: 3, label: 'Piyade', icon: '🛡', soldiers: 9 },
+  okcu: { speed: 20, range: 120, dmg: 5, armor: 0, label: 'Okçu', icon: '🏹', soldiers: 6 },
+  suvari: { speed: 44, range: 16, dmg: 10, armor: 1, label: 'Süvari', icon: '🐎', soldiers: 5 },
+  topcu: { speed: 10, range: 150, dmg: 16, armor: 0, label: 'Topçu', icon: '💣', soldiers: 3 },
 }
 
 export const FIELD_W = 900
@@ -118,6 +118,24 @@ export function tickBattle(units: BattleUnit[], dt: number, onAttack?: (u: Battl
     }
     moveToward(u, st.speed, dt)
     u.morale = Math.min(100, u.morale + dt * 1.2)
+  }
+
+  // === ÇARPIŞMA: birlikler birbirinin içinden geçemez ===
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = alive[i], c = alive[j]
+      const d = dist(a, c)
+      const engaged = a.targetEnemy === c.id || c.targetEnemy === a.id
+      const minD = engaged ? 14 : 30
+      if (d < minD && d > 0.01) {
+        const push = (minD - d) / 2
+        const ux = (a.x - c.x) / d, uy = (a.y - c.y) / d
+        a.x += ux * push; a.y += uy * push
+        c.x -= ux * push; c.y -= uy * push
+        a.y = Math.max(10, Math.min(FIELD_H - 10, a.y))
+        c.y = Math.max(10, Math.min(FIELD_H - 10, c.y))
+      }
+    }
   }
 }
 
