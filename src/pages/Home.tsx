@@ -7,7 +7,7 @@ import { applyEventChoice, armyLevel, armySize, coreCost, endTurn, newGame } fro
 import { playMusic, sfx, stopMusic } from '../game/audio'
 import { UNIT_INFO, BUILDING_INFO, LAW_INFO, TECH_INFO, DEFAULT_BANNER } from '../game/types'
 import type { BannerDesign, Building, Edict, GameState, Law, ManaType, TaxLevel, UnitType } from '../game/types'
-import { BannerSVG, OrnateFrame } from '../components/Banner'
+import { BannerDesigner, BannerSVG, OrnateFrame } from '../components/Banner'
 
 type Screen = 'menu' | 'map' | 'battle' | 'gameover'
 
@@ -29,7 +29,7 @@ export default function Home() {
   const SAVE_KEY = 'imparatorluk_save'
   const saveGame = (s: GameState) => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)) } catch { /* */ } }
 
-  const start = () => {
+  const start = (stateName?: string, banner?: BannerDesign) => {
     try {
       const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }
       const so = window.screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
@@ -38,7 +38,7 @@ export default function Home() {
       }
     } catch { /* yoksay */ }
     stopMusic()
-    setGs(newGame()); setScreen('map'); setArmyMoved(false)
+    setGs(newGame(stateName, banner)); setScreen('map'); setArmyMoved(false)
     playMusic('/ses/harita_muzigi.mp3')
   }
 
@@ -289,9 +289,18 @@ export default function Home() {
             prov.owner = 'player'; prov.core = false; prov.unrest = 40
             s.log = [`🏆 İsyancılar ezildi, ${prov.name} geri alındı!`, ...s.log]
           } else {
-            prov.occupiedBy = 'player'
+            // AI ile eşit kural: savaşta alınan eyalet doğrudan ilhak edilir
+            prov.owner = 'player'; prov.occupiedBy = undefined; prov.core = false
+            prov.unrest = Math.max(prov.unrest, 50)
             s.warScore[battle.enemyFactionId] = (s.warScore[battle.enemyFactionId] ?? 0) + 20
-            s.log = [`🏆 ZAFER! ${prov.name} işgal edildi — ilhak için barış masasında talep edin.`, ...s.log]
+            s.log = [`🏆 ZAFER! ${prov.name} ilhak edildi! Çekirdeğe bağlamayı unutmayın.`, ...s.log]
+            if (!Object.values(s.provinces).some(pr => pr.owner === battle.enemyFactionId)) {
+              enemyF.alive = false
+              enemyF.state = 'baris'
+              delete s.warScore[battle.enemyFactionId]
+              s.log = [`🏳️ ${enemyF.name} haritadan silindi!`, ...s.log]
+              if (!Object.values(s.provinces).some(pr => pr.owner !== 'player')) s.gameOver = 'win'
+            }
           }
           prov.garrison = { piyade: 0, okcu: 0, suvari: 0 }
           s.factions.player.army = mySurv
@@ -322,7 +331,7 @@ export default function Home() {
     setGs(prev => { if (prev?.gameOver) setScreen('gameover'); return prev })
   }
 
-  if (screen === 'menu') return <Menu onStart={start} onContinue={continueGame} />
+  if (screen === 'menu') return <Menu onStart={start} onContinue={continueGame} hasSave={(() => { try { return !!localStorage.getItem(SAVE_KEY) } catch { return false } })()} />
   if (screen === 'battle' && battle && gs) {
     return <BattleScreen initialUnits={battle.units} provinceName={gs.provinces[battle.provinceId].name}
       enemyName={gs.factions[battle.enemyFactionId]?.name ?? 'İsyancılar'} banner={gs.playerBanner ?? DEFAULT_BANNER} onFinish={finishBattle} />
@@ -340,7 +349,7 @@ export default function Home() {
           <p className="text-slate-400 mb-6">{gs.gameOver === 'win'
             ? `${gs.turn} turda tüm diyarı tek sancak altında birleştirdiniz. Tarih sizi hatırlayacak.`
             : `Devletiniz ${gs.turn}. turda yıkıldı. Belki bir sonraki hükümdar daha talihli olur.`}</p>
-          <button onClick={start} className="px-8 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold">Yeniden Başla</button>
+          <button onClick={() => { stopMusic(); setScreen('menu') }} className="px-8 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold">Ana Menüye Dön</button>
         </div>
       </div>
     )
@@ -388,51 +397,112 @@ export default function Home() {
   )
 }
 
-function Menu({ onStart, onContinue }: { onStart: () => void; onContinue: () => void }) {
-  const hasSave = (() => { try { return !!localStorage.getItem('imparatorluk_save') } catch { return false } })()
+function GoldDivider() {
+  return (
+    <div className="flex items-center gap-2 my-4">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-500/70 to-amber-500/70" />
+      <img src="/img/orn_corner.png" alt="" className="w-5 h-5 opacity-80 rotate-45" />
+      <div className="flex-1 h-px bg-gradient-to-l from-transparent via-amber-500/70 to-amber-500/70" />
+    </div>
+  )
+}
+
+function Menu({ onStart, onContinue, hasSave }: { onStart: (name: string, banner: BannerDesign) => void; onContinue: () => void; hasSave: boolean }) {
+  const [setup, setSetup] = useState(false)
+  const [stateName, setStateName] = useState('Aksaray Devleti')
+  const [banner, setBanner] = useState<BannerDesign>({ ...DEFAULT_BANNER })
+  const [showDesigner, setShowDesigner] = useState(false)
+
   return (
     <div className="min-h-full bg-slate-950 text-white relative overflow-y-auto">
       <img src="/img/menu_bg2.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
       <div className="fixed inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/25" />
       <div className="relative min-h-full flex flex-col items-center justify-center p-4 py-10">
-        <div className="relative text-center max-w-lg w-full bg-slate-950/40 rounded-3xl border border-amber-800/30 p-6 backdrop-blur-[2px]">
+        <div className="relative text-center max-w-lg w-full bg-slate-950/40 rounded-3xl border-2 border-amber-700/40 p-6 backdrop-blur-[2px] shadow-2xl shadow-black">
           <OrnateFrame />
           <div className="flex justify-center items-center gap-4 mb-4">
-            <BannerSVG d={DEFAULT_BANNER} className="w-14 h-10 drop-shadow-2xl hover:scale-110 transition-transform" />
+            <BannerSVG d={banner} className="w-14 h-10 drop-shadow-2xl hover:scale-110 transition-transform" />
             {['/img/banner_kuzey.png', '/img/banner_han.png', '/img/banner_bati.png'].map((b, i) => (
               <img key={i} src={b} alt="" className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-2xl hover:scale-110 transition-transform" />
             ))}
           </div>
           <h1 className="text-5xl sm:text-6xl font-black mb-1 tracking-widest drop-shadow-lg">İMPARATORLUK</h1>
-          <p className="text-amber-300/90 text-xs sm:text-sm mb-8 tracking-wide font-semibold">DÖRT TAHT · TEK HÜKÜMDAR · SIRA TABANLI STRATEJİ & TAKTİK MUHAREBE</p>
+          <p className="text-amber-300/90 text-xs sm:text-sm tracking-wide font-semibold">DÖRT TAHT · TEK HÜKÜMDAR · SIRA TABANLI STRATEJİ & TAKTİK MUHAREBE</p>
+          <GoldDivider />
 
-          <div className="grid grid-cols-2 gap-2 text-left text-[11px] sm:text-xs mb-8">
-            {[
-              ['🏛', 'Devlet Yönetimi', 'Kanunlar, ilgi grupları, binalar, isyan riski'],
-              ['🤝', 'Diplomasi', 'İttifaklar, ticaret, savaş skoru, barış masası'],
-              ['⚔️', 'Taktik Savaş', 'Sancaklı birlik kafileleri, moral, arazi, topçu'],
-              ['👑', 'Fetih', 'Üç devleti ortadan kaldır, diyarı birleştir'],
-            ].map(([icon, title, desc]) => (
-              <div key={title} className="bg-slate-900/70 border border-slate-700/80 rounded-xl p-2.5 backdrop-blur-sm">
-                <div className="font-bold text-slate-100">{icon} {title}</div>
-                <div className="text-slate-400 mt-0.5">{desc}</div>
+          {!setup ? (
+            <>
+              <div className="grid grid-cols-2 gap-2 text-left text-[11px] sm:text-xs mb-6">
+                {[
+                  ['/img/ic_siyaset.png', 'Devlet Yönetimi', 'Kanunlar, ilgi grupları, binalar, isyan riski'],
+                  ['/img/ic_diplomasi.png', 'Diplomasi', 'İttifaklar, ticaret, savaş skoru, barış masası'],
+                  ['/img/ic_askeri.png', 'Taktik Savaş', 'Sancaklı birlik kafileleri, moral, arazi, topçu'],
+                  ['/img/ic_eyalet.png', 'Fetih', 'Üç devleti ortadan kaldır, diyarı birleştir'],
+                ].map(([icon, title, desc]) => (
+                  <div key={title} className="bg-slate-900/70 border border-amber-800/30 rounded-xl p-2.5 backdrop-blur-sm">
+                    <div className="font-bold text-slate-100 flex items-center gap-1.5">
+                      <img src={icon} alt="" className="w-5 h-5 object-contain" />{title}
+                    </div>
+                    <div className="text-slate-400 mt-0.5">{desc}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {hasSave && (
-            <button onClick={onContinue}
-              className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-amber-900/40 mb-3">
-              📜 Kaldığın Yerden Devam Et
-            </button>
+              {hasSave && (
+                <button onClick={onContinue}
+                  className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-amber-900/40 mb-3 flex items-center justify-center gap-2">
+                  <img src="/img/ic_gunluk.png" alt="" className="w-6 h-6 object-contain" /> Kaldığın Yerden Devam Et
+                </button>
+              )}
+              <button onClick={() => setSetup(true)}
+                className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50 flex items-center justify-center gap-2">
+                <img src="/img/ic_askeri.png" alt="" className="w-6 h-6 object-contain" /> {hasSave ? 'Yeni Sefer' : 'Tahta Otur'}
+              </button>
+              <div className="text-[10px] text-slate-500 mt-4">v8.0 · Kayıt otomatik tutulur</div>
+            </>
+          ) : (
+            <div className="text-left">
+              <div className="text-center mb-4">
+                <div className="text-xl font-black text-amber-200">Devletini Kur</div>
+                <div className="text-[11px] text-slate-400">Adını yaz, sancağını dizayn et, tahta otur</div>
+              </div>
+
+              <div className="mb-4">
+                <div className="text-[11px] font-semibold text-slate-300 mb-1.5">Devlet Adı</div>
+                <input value={stateName} onChange={e => setStateName(e.target.value.slice(0, 24))}
+                  placeholder="Aksaray Devleti"
+                  className="w-full rounded-xl bg-slate-900/80 border border-amber-700/50 px-4 py-3 text-center font-bold text-amber-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div className="mb-5 flex items-center gap-4 bg-slate-900/70 border border-amber-800/30 rounded-xl p-3">
+                <div className="relative flex-shrink-0">
+                  <div className="w-1 h-16 bg-amber-900 rounded absolute -left-1 top-0" />
+                  <BannerSVG d={banner} className="w-24 h-[70px] drop-shadow-2xl" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[11px] text-slate-400 mb-2">Sancağın zemin rengi haritadaki toprak rengin olur.</div>
+                  <button onClick={() => setShowDesigner(true)}
+                    className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-sm font-black active:scale-[0.98] transition">
+                    ⚑ Sancağı Dizayn Et
+                  </button>
+                </div>
+              </div>
+
+              <button onClick={() => onStart(stateName, banner)}
+                className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50 flex items-center justify-center gap-2">
+                <img src="/img/ic_askeri.png" alt="" className="w-6 h-6 object-contain" /> {stateName.trim() || 'Aksaray Devleti'} ile Başla
+              </button>
+              <button onClick={() => setSetup(false)}
+                className="w-full mt-2 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
+                ← Geri Dön
+              </button>
+            </div>
           )}
-          <button onClick={onStart}
-            className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-lg font-black active:scale-[0.98] transition shadow-lg shadow-teal-900/50">
-            ⚔️ {hasSave ? 'Yeni Sefer' : 'Tahta Otur'}
-          </button>
-          <div className="text-[10px] text-slate-500 mt-4">v7.0 · Kayıt otomatik tutulur</div>
         </div>
       </div>
+      {showDesigner && (
+        <BannerDesigner design={banner} onChange={setBanner} onClose={() => setShowDesigner(false)} />
+      )}
     </div>
   )
 }

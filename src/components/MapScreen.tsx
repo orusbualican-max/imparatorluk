@@ -5,6 +5,18 @@ import type { BannerDesign, Building, Faction, GameState, Law, ManaType, UnitTyp
 import { ARMY_LEVELS, TAX_APPROVAL, armyLevel, armyPower, armySize, coreCost, provinceIncome } from '../game/strategy'
 import { BannerDesigner, BannerSVG } from './Banner'
 
+// === Özel çizim ikonlar (emoji yerine) ===
+export const IC = {
+  gold: '/img/ic_gold.png', food: '/img/ic_food.png', idari: '/img/ic_idari.png', diplo: '/img/ic_diplo.png',
+  askeri: '/img/ic_askeri.png', approval: '/img/ic_approval.png', stability: '/img/ic_stability.png', turn: '/img/ic_turn.png',
+  eyalet: '/img/ic_eyalet.png', diplomasi: '/img/ic_diplomasi.png', siyaset: '/img/ic_siyaset.png',
+  gelisim: '/img/ic_gelisim.png', gunluk: '/img/ic_gunluk.png',
+}
+export const MANA_IC: Record<ManaType, string> = { idari: IC.idari, diplomatik: IC.diplo, askeri: IC.askeri }
+export const Ic = ({ src, className = 'w-4 h-4' }: { src: string; className?: string }) => (
+  <img src={src} alt="" className={`inline-block object-contain align-[-3px] ${className}`} />
+)
+
 interface Props {
   gs: GameState
   onEndTurn: () => void
@@ -65,30 +77,30 @@ export default function MapScreen(p: Props) {
   }
 
   const res = (icon: string, v: number | string, warn = false) => (
-    <div className={`flex items-center gap-0.5 text-[11px] sm:text-xs font-semibold ${warn ? 'text-red-400' : ''}`}>
-      <span>{icon}</span><span>{v}</span>
+    <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-semibold ${warn ? 'text-red-400' : ''}`}>
+      <Ic src={icon} className="w-[18px] h-[18px] drop-shadow" /><span>{v}</span>
     </div>
   )
 
   return (
     <div className="h-full relative bg-slate-950 text-white flex flex-col overflow-hidden">
-      {/* Üst kaynak çubuğu */}
-      <div className="bg-slate-900/95 border-b border-slate-700 px-2 py-1.5 flex items-center justify-between gap-1 flex-shrink-0 flex-wrap">
+      {/* Üst kaynak çubuğu (EU4 tarzı altın çerçeveli) */}
+      <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-b-2 border-amber-700/60 px-2 py-1.5 flex items-center justify-between gap-1 flex-shrink-0 flex-wrap">
         <button onClick={() => setShowDesigner(true)} title="Sancağı düzenle"
-          className="font-bold text-xs flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+          className="font-bold text-xs flex items-center gap-1.5 hover:scale-105 transition active:scale-95 rounded-lg border border-amber-700/40 bg-slate-900/60 px-2 py-1">
           <BannerSVG d={banner} className="w-7 h-5 drop-shadow" />
           <span className="hidden sm:inline">{player.name}</span>
           <span className="text-[9px] text-amber-400/80">✏️</span>
         </button>
-        <div className="flex gap-2 flex-wrap items-center">
-          {res('💰', player.gold)}
-          {res('🌾', player.food, player.food < 5)}
-          {res('🏛', gs.mana.idari)}
-          {res('🕊', gs.mana.diplomatik)}
-          {res('⚔', gs.mana.askeri)}
-          {res('😊', `%${gs.approval}`, gs.approval < 30)}
-          {res('🎚', `%${gs.stability}`, gs.stability < 30)}
-          {res('📅', `T${gs.turn}`)}
+        <div className="flex gap-2.5 flex-wrap items-center">
+          {res(IC.gold, player.gold)}
+          {res(IC.food, player.food, player.food < 5)}
+          {res(IC.idari, gs.mana.idari)}
+          {res(IC.diplo, gs.mana.diplomatik)}
+          {res(IC.askeri, gs.mana.askeri)}
+          {res(IC.approval, `%${gs.approval}`, gs.approval < 30)}
+          {res(IC.stability, `%${gs.stability}`, gs.stability < 30)}
+          {res(IC.turn, `T${gs.turn}`)}
         </div>
       </div>
 
@@ -180,12 +192,13 @@ export default function MapScreen(p: Props) {
         </div>
 
         {/* Panel */}
-        <div className="flex-1 landscape:flex-none landscape:w-[330px] xl:landscape:w-[370px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l border-slate-700 flex flex-col min-h-0">
-          <div className="flex border-b border-slate-700 flex-shrink-0">
-            {([['eyalet', '🏰'], ['diplomasi', '🤝'], ['siyaset', '🏛'], ['gelisim', '💡'], ['gunluk', '📜']] as [Tab, string][]).map(([t, icon]) => (
+        <div className="relative flex-1 landscape:flex-none landscape:w-[330px] xl:landscape:w-[370px] bg-slate-900 border-t landscape:border-t-0 landscape:border-l-2 border-amber-700/40 flex flex-col min-h-0">
+          <div className="flex border-b-2 border-amber-700/50 bg-gradient-to-b from-slate-800/80 to-slate-900 flex-shrink-0">
+            {([['eyalet', IC.eyalet], ['diplomasi', IC.diplomasi], ['siyaset', IC.siyaset], ['gelisim', IC.gelisim], ['gunluk', IC.gunluk]] as [Tab, string][]).map(([t, icon]) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2 text-[10px] sm:text-[11px] font-semibold ${tab === t ? 'bg-slate-800 text-teal-300 border-b-2 border-teal-400' : 'text-slate-400'}`}>
-                {icon} <span className="hidden sm:inline">{{ eyalet: 'Eyalet', diplomasi: 'Diplomasi', siyaset: 'Siyaset', gelisim: 'Gelişim', gunluk: 'Günlük' }[t]}</span>
+                className={`flex-1 py-1.5 text-[10px] sm:text-[11px] font-semibold ${tab === t ? 'bg-slate-800 text-amber-200 border-b-2 border-amber-400' : 'text-slate-400'}`}>
+                <Ic src={icon} className="w-5 h-5 mx-auto sm:inline sm:mx-0 sm:mr-1" />
+                <span className="hidden sm:inline">{{ eyalet: 'Eyalet', diplomasi: 'Diplomasi', siyaset: 'Siyaset', gelisim: 'Gelişim', gunluk: 'Günlük' }[t]}</span>
               </button>
             ))}
           </div>
@@ -215,7 +228,7 @@ export default function MapScreen(p: Props) {
                     <div className="text-[11px] text-red-200">⚠️ Çekirdeksiz eyalet: gelirin sadece %30'unu üretiyor, isyan riski yüksek.</div>
                     <button onClick={() => p.onCore(prov.id)} disabled={gs.mana.idari < coreCost(gs)}
                       className="w-full py-1.5 rounded-lg bg-teal-700 text-xs font-bold disabled:opacity-40">
-                      📜 Çekirdeğe Bağla (🏛{coreCost(gs)})
+                      Çekirdeğe Bağla (<Ic src={IC.idari} className="w-3.5 h-3.5" />{coreCost(gs)})
                     </button>
                   </div>
                 )}
@@ -229,7 +242,7 @@ export default function MapScreen(p: Props) {
                 )}
 
                 <div className="text-[11px] text-slate-400 space-y-0.5">
-                  <div>Gelir: 💰{provinceIncome(gs, prov).gold} · 🌾{provinceIncome(gs, prov).food} /tur</div>
+                  <div>Gelir: <Ic src={IC.gold} className="w-3.5 h-3.5" />{provinceIncome(gs, prov).gold} · <Ic src={IC.food} className="w-3.5 h-3.5" />{provinceIncome(gs, prov).food} /tur</div>
                   <div className="flex items-center gap-1">
                     Asker kaynağı: <b className="text-slate-200">{prov.manpower}/{prov.maxManpower + (prov.building === 'kosla' ? 2 : 0)}</b>
                     <span className="flex gap-0.5">
@@ -259,7 +272,7 @@ export default function MapScreen(p: Props) {
                         return (
                           <button key={b} onClick={() => p.onBuild(prov.id, b)} disabled={player.gold < cost}
                             className="rounded-lg bg-slate-800 border border-slate-600 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 text-left">
-                            <div className="font-bold">{BUILDING_INFO[b].icon} {BUILDING_INFO[b].name} <span className="text-amber-300">💰{cost}</span></div>
+                            <div className="font-bold">{BUILDING_INFO[b].icon} {BUILDING_INFO[b].name} <span className="text-amber-300"><Ic src={IC.gold} className="w-3 h-3" />{cost}</span></div>
                             <div className="text-slate-400">{BUILDING_INFO[b].desc}</div>
                           </button>
                         )
@@ -297,7 +310,7 @@ export default function MapScreen(p: Props) {
                           className="rounded-lg bg-slate-800 border border-slate-600 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 transition">
                           <img src={UNIT_IMG[t]} className="w-8 h-8 rounded-full object-cover mx-auto mb-0.5 border border-slate-500" alt="" />
                           <div className="font-bold">{UNIT_INFO[t].name}</div>
-                          <div className="text-slate-400">💰{UNIT_INFO[t].cost} 👤{UNIT_INFO[t].manpower}</div>
+                          <div className="text-slate-400"><Ic src={IC.gold} className="w-3 h-3" />{UNIT_INFO[t].cost} 👤{UNIT_INFO[t].manpower}</div>
                         </button>
                       ))}
                     </div>
@@ -366,7 +379,7 @@ export default function MapScreen(p: Props) {
                       <button key={e} onClick={() => p.onEdict(e)} disabled={gs.mana[m] < cost || gs.edict === e}
                         className="rounded-lg bg-slate-800 border border-slate-600 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">
                         <div className="font-bold">{name}</div>
-                        <div className="text-amber-300">{{ idari: '🏛', diplomatik: '🕊', askeri: '⚔' }[m as ManaType]}{cost}</div>
+                        <div className="text-amber-300"><Ic src={MANA_IC[m as ManaType]} className="w-3.5 h-3.5" />{cost}</div>
                         {gs.edict === e && <div className="text-teal-400">✅ Aktif</div>}
                       </button>
                     ))}
@@ -374,14 +387,14 @@ export default function MapScreen(p: Props) {
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-semibold text-slate-300 mb-1">Kanunlar (🏛{gs.mana.idari})</div>
+                  <div className="text-[11px] font-semibold text-slate-300 mb-1">Kanunlar (<Ic src={IC.idari} className="w-3.5 h-3.5" />{gs.mana.idari})</div>
                   <div className="space-y-1.5">
                     {(Object.keys(LAW_INFO) as Law[]).map(l => (
                       <button key={l} onClick={() => p.onToggleLaw(l)} disabled={!gs.laws[l] && gs.mana.idari < LAW_INFO[l].cost}
                         className={`w-full text-left rounded-lg border p-2 text-[10px] disabled:opacity-40 active:scale-[0.99] transition ${gs.laws[l] ? 'border-teal-500 bg-teal-950/40' : 'border-slate-600 bg-slate-800'}`}>
                         <div className="flex justify-between font-bold text-[11px]">
                           <span>{LAW_INFO[l].icon} {LAW_INFO[l].name}</span>
-                          <span>{gs.laws[l] ? '✅ Yürürlükte (kaldır)' : `🏛${LAW_INFO[l].cost}`}</span>
+                          <span>{gs.laws[l] ? '✅ Yürürlükte (kaldır)' : <><Ic src={IC.idari} className="w-3 h-3" />{LAW_INFO[l].cost}</>}</span>
                         </div>
                         <div className="text-slate-400">{LAW_INFO[l].effects}</div>
                       </button>
@@ -419,7 +432,7 @@ export default function MapScreen(p: Props) {
                     <div key={track} className="rounded-xl bg-slate-800 border border-slate-600 p-2">
                       <div className="flex justify-between items-center mb-1.5">
                         <div className="font-bold text-[11px]">{TECH_INFO[track].icon} {TECH_INFO[track].name}</div>
-                        <div className="text-[10px] text-amber-300">{{ idari: '🏛', diplomatik: '🕊', askeri: '⚔' }[track]}{gs.mana[track]}</div>
+                        <div className="text-[10px] text-amber-300"><Ic src={MANA_IC[track]} className="w-3.5 h-3.5" />{gs.mana[track]}</div>
                       </div>
                       <div className="space-y-1">
                         {TECH_INFO[track].levels.map((l, i) => (
@@ -451,8 +464,8 @@ export default function MapScreen(p: Props) {
 
           <div className="p-2.5 border-t border-slate-700 flex-shrink-0">
             <button onClick={p.onEndTurn}
-              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-sm active:scale-[0.98] transition">
-              ⏭ Turu Bitir
+              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-sm active:scale-[0.98] transition border border-amber-500/30">
+              <Ic src={IC.turn} className="w-4 h-4" /> Turu Bitir
             </button>
           </div>
         </div>
@@ -513,12 +526,12 @@ function FactionCard({ f, gs, onAction }: { f: Faction; gs: GameState; onAction:
         {f.state === 'baris' ? (
           <>
             <button onClick={() => onAction(f.id, 'hediye')} disabled={player.gold < 50}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">🎁 Hediye (💰50)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">🎁 Hediye (<Ic src={IC.gold} className="w-3 h-3" />50)</button>
             <button onClick={() => onAction(f.id, 'ticaret')} disabled={f.tradeAgreement || gs.mana.diplomatik < 20 || rel < 0}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">💱 Ticaret (🕊20)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40 active:scale-95">💱 Ticaret (<Ic src={IC.diplo} className="w-3 h-3" />20)</button>
             <button onClick={() => onAction(f.id, 'ittifak')} disabled={!!f.alliance || rel < 50 || gs.mana.diplomatik < 40}
               className="rounded-lg bg-teal-800 p-1.5 text-[10px] disabled:opacity-40 active:scale-95 col-span-2">
-              🤝 {f.alliance ? 'Müttefiksiniz' : 'İttifak Kur (🕊40, ilişki 50+)'}
+              🤝 {f.alliance ? 'Müttefiksiniz' : <>İttifak Kur (<Ic src={IC.diplo} className="w-3 h-3" />40, ilişki 50+)</>}
             </button>
             <button onClick={() => onAction(f.id, 'savas')}
               className="rounded-lg bg-red-800 p-1.5 text-[10px] active:scale-95 col-span-2">⚔️ Savaş İlan Et</button>
@@ -526,12 +539,12 @@ function FactionCard({ f, gs, onAction }: { f: Faction; gs: GameState; onAction:
         ) : (
           <>
             <button onClick={() => onAction(f.id, 'beyaz_baris')} disabled={gs.mana.diplomatik < 10}
-              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40">🕊️ Beyaz Barış (🕊10)</button>
+              className="rounded-lg bg-slate-700 p-1.5 text-[10px] disabled:opacity-40">🕊️ Beyaz Barış (<Ic src={IC.diplo} className="w-3 h-3" />10)</button>
             <button onClick={() => onAction(f.id, 'galibiyet_barisi')} disabled={score < 40 || gs.mana.diplomatik < 20}
               className="rounded-lg bg-teal-700 p-1.5 text-[10px] disabled:opacity-40">👑 Galibiyet Barışı {score >= 40 ? '' : '(skor 40+)'}</button>
             {score <= -40 && (
               <button onClick={() => onAction(f.id, 'maglubiyet_barisi')} disabled={player.gold < 100}
-                className="rounded-lg bg-red-900 p-1.5 text-[10px] disabled:opacity-40 col-span-2">🏳️ Teslim Ol (💰100 tazminat)</button>
+                className="rounded-lg bg-red-900 p-1.5 text-[10px] disabled:opacity-40 col-span-2">🏳️ Teslim Ol (<Ic src={IC.gold} className="w-3 h-3" />100 tazminat)</button>
             )}
           </>
         )}
